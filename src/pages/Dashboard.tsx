@@ -4,32 +4,52 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, X, LogOut, Clock, Image } from "lucide-react";
+import { Upload, X, LogOut, Clock, Image, CheckCircle, XCircle, Users, Shield } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface Submission {
   id: string;
+  user_id: string;
   image_url: string | null;
   description: string | null;
   hours: number;
   submitted_at: string;
+  status: string;
+  user_name?: string | null;
+  user_email?: string | null;
+}
+
+interface UserProfile {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  created_at: string;
 }
 
 const Dashboard = () => {
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [allSubmissions, setAllSubmissions] = useState<Submission[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [totalHours, setTotalHours] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState<"submit" | "pending" | "users">("submit");
 
   // Form state
   const [description, setDescription] = useState("");
   const [hours, setHours] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // New user form state
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserName, setNewUserName] = useState("");
+  const [addingUser, setAddingUser] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -40,26 +60,77 @@ const Dashboard = () => {
   useEffect(() => {
     if (user) {
       fetchSubmissions();
+      if (isAdmin) {
+        fetchAllSubmissions();
+        fetchUsers();
+      }
     }
-  }, [user]);
+  }, [user, isAdmin]);
 
   const fetchSubmissions = async () => {
     try {
       const { data, error } = await supabase
         .from("submissions")
         .select("*")
+        .eq("user_id", user?.id)
         .order("submitted_at", { ascending: false });
 
       if (error) throw error;
 
       setSubmissions(data || []);
-      const total = (data || []).reduce((sum, sub) => sum + Number(sub.hours), 0);
+      const approvedSubmissions = (data || []).filter(s => s.status === "approved");
+      const total = approvedSubmissions.reduce((sum, sub) => sum + Number(sub.hours), 0);
       setTotalHours(total);
     } catch (error) {
       console.error("Error fetching submissions:", error);
       toast.error("Failed to load submissions");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAllSubmissions = async () => {
+    try {
+      // Fetch submissions
+      const { data: submissionsData, error: submissionsError } = await supabase
+        .from("submissions")
+        .select("*")
+        .order("submitted_at", { ascending: false });
+
+      if (submissionsError) throw submissionsError;
+
+      // Fetch profiles to match with submissions
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("id, full_name, email");
+
+      const profilesMap = new Map(
+        (profilesData || []).map(p => [p.id, p])
+      );
+
+      const submissionsWithProfiles = (submissionsData || []).map(s => ({
+        ...s,
+        user_name: profilesMap.get(s.user_id)?.full_name,
+        user_email: profilesMap.get(s.user_id)?.email,
+      }));
+
+      setAllSubmissions(submissionsWithProfiles);
+    } catch (error) {
+      console.error("Error fetching all submissions:", error);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error) {
+      console.error("Error fetching users:", error);
     }
   };
 
@@ -89,7 +160,6 @@ const Dashboard = () => {
     try {
       let imageUrl = null;
 
-      // Upload image if provided
       if (image) {
         const fileExt = image.name.split(".").pop();
         const fileName = `${user.id}/${Date.now()}.${fileExt}`;
@@ -107,31 +177,80 @@ const Dashboard = () => {
         imageUrl = publicUrl;
       }
 
-      // Create submission
       const { error } = await supabase.from("submissions").insert({
         user_id: user.id,
         description,
         hours: parseFloat(hours) || 0,
         image_url: imageUrl,
+        status: "pending",
       });
 
       if (error) throw error;
 
-      toast.success("Submission added successfully!");
+      toast.success("Submission added! Awaiting admin approval.");
       
-      // Reset form
       setDescription("");
       setHours("");
       setImage(null);
       setImagePreview(null);
       
-      // Refresh submissions
       fetchSubmissions();
     } catch (error) {
       console.error("Error submitting:", error);
       toast.error("Failed to submit. Please try again.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleApproval = async (submissionId: string, approved: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("submissions")
+        .update({
+          status: approved ? "approved" : "rejected",
+          approved_at: approved ? new Date().toISOString() : null,
+          approved_by: user?.id,
+        })
+        .eq("id", submissionId);
+
+      if (error) throw error;
+
+      toast.success(approved ? "Submission approved!" : "Submission rejected");
+      fetchAllSubmissions();
+      fetchSubmissions();
+    } catch (error) {
+      console.error("Error updating submission:", error);
+      toast.error("Failed to update submission");
+    }
+  };
+
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddingUser(true);
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: newUserEmail,
+        password: newUserPassword,
+        options: {
+          data: { full_name: newUserName }
+        }
+      });
+
+      if (error) throw error;
+
+      toast.success("User added successfully!");
+      setNewUserEmail("");
+      setNewUserPassword("");
+      setNewUserName("");
+      
+      setTimeout(() => fetchUsers(), 1000);
+    } catch (error: any) {
+      console.error("Error adding user:", error);
+      toast.error(error.message || "Failed to add user");
+    } finally {
+      setAddingUser(false);
     }
   };
 
@@ -148,12 +267,22 @@ const Dashboard = () => {
     );
   }
 
+  const pendingSubmissions = allSubmissions.filter(s => s.status === "pending");
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
+            {isAdmin && (
+              <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full flex items-center gap-1">
+                <Shield className="w-3 h-3" />
+                Admin
+              </span>
+            )}
+          </div>
           <Button variant="outline" onClick={handleSignOut} className="gap-2">
             <LogOut className="w-4 h-4" />
             Sign Out
@@ -163,14 +292,14 @@ const Dashboard = () => {
 
       <div className="container mx-auto px-4 py-8">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <div className="bg-card rounded-xl p-6 border border-border">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-primary/10 rounded-lg">
                 <Clock className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Hours</p>
+                <p className="text-sm text-muted-foreground">Approved Hours</p>
                 <p className="text-3xl font-bold text-foreground">{totalHours.toFixed(1)}</p>
               </div>
             </div>
@@ -181,92 +310,188 @@ const Dashboard = () => {
                 <Image className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Submissions</p>
+                <p className="text-sm text-muted-foreground">My Submissions</p>
                 <p className="text-3xl font-bold text-foreground">{submissions.length}</p>
               </div>
             </div>
           </div>
+          {isAdmin && (
+            <div className="bg-card rounded-xl p-6 border border-border">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-yellow-500/10 rounded-lg">
+                  <Clock className="w-6 h-6 text-yellow-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Pending Approval</p>
+                  <p className="text-3xl font-bold text-foreground">{pendingSubmissions.length}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Submission Form */}
-          <div className="bg-card rounded-xl p-6 border border-border">
-            <h2 className="text-lg font-semibold text-foreground mb-4">New Submission</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="hours">Hours</Label>
-                <Input
-                  id="hours"
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  placeholder="Enter hours"
-                  value={hours}
-                  onChange={(e) => setHours(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="What did you work on?"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Upload Picture</Label>
-                {imagePreview ? (
-                  <div className="relative">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="w-full h-40 object-cover rounded-lg border border-border"
-                    />
-                    <button
-                      type="button"
-                      onClick={removeImage}
-                      className="absolute top-2 right-2 p-1.5 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <label
-                    htmlFor="image-upload"
-                    className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
-                  >
-                    <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-                    <span className="text-sm text-muted-foreground">Click to upload</span>
-                    <input
-                      id="image-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="hidden"
-                    />
-                  </label>
-                )}
-              </div>
-
-              <Button type="submit" className="w-full" disabled={submitting}>
-                {submitting ? "Submitting..." : "Submit"}
-              </Button>
-            </form>
+        {/* Admin Tabs */}
+        {isAdmin && (
+          <div className="flex gap-2 mb-6">
+            <Button
+              variant={activeTab === "submit" ? "default" : "outline"}
+              onClick={() => setActiveTab("submit")}
+            >
+              Submit Hours
+            </Button>
+            <Button
+              variant={activeTab === "pending" ? "default" : "outline"}
+              onClick={() => setActiveTab("pending")}
+              className="gap-2"
+            >
+              Pending Submissions
+              {pendingSubmissions.length > 0 && (
+                <span className="bg-yellow-500 text-white text-xs px-2 py-0.5 rounded-full">
+                  {pendingSubmissions.length}
+                </span>
+              )}
+            </Button>
+            <Button
+              variant={activeTab === "users" ? "default" : "outline"}
+              onClick={() => setActiveTab("users")}
+              className="gap-2"
+            >
+              <Users className="w-4 h-4" />
+              Manage Users
+            </Button>
           </div>
+        )}
 
-          {/* Past Submissions */}
+        {/* Content based on tab */}
+        {activeTab === "submit" && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Submission Form */}
+            <div className="bg-card rounded-xl p-6 border border-border">
+              <h2 className="text-lg font-semibold text-foreground mb-4">New Submission</h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="hours">Hours</Label>
+                  <Input
+                    id="hours"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    placeholder="Enter hours"
+                    value={hours}
+                    onChange={(e) => setHours(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="What did you work on?"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Upload Picture</Label>
+                  {imagePreview ? (
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-full h-40 object-cover rounded-lg border border-border"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        className="absolute top-2 right-2 p-1.5 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="image-upload"
+                      className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
+                    >
+                      <Upload className="w-8 h-8 text-muted-foreground mb-2" />
+                      <span className="text-sm text-muted-foreground">Click to upload</span>
+                      <input
+                        id="image-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+
+                <Button type="submit" className="w-full" disabled={submitting}>
+                  {submitting ? "Submitting..." : "Submit"}
+                </Button>
+              </form>
+            </div>
+
+            {/* Past Submissions */}
+            <div className="bg-card rounded-xl p-6 border border-border">
+              <h2 className="text-lg font-semibold text-foreground mb-4">My Submissions</h2>
+              {submissions.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No submissions yet</p>
+              ) : (
+                <div className="space-y-4 max-h-[500px] overflow-y-auto">
+                  {submissions.map((submission) => (
+                    <div
+                      key={submission.id}
+                      className="flex gap-4 p-4 bg-muted/50 rounded-lg border border-border"
+                    >
+                      {submission.image_url && (
+                        <img
+                          src={submission.image_url}
+                          alt="Submission"
+                          className="w-16 h-16 object-cover rounded-lg"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-foreground">{submission.hours} hours</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            submission.status === "approved" 
+                              ? "bg-green-500/10 text-green-500" 
+                              : submission.status === "rejected"
+                              ? "bg-red-500/10 text-red-500"
+                              : "bg-yellow-500/10 text-yellow-500"
+                          }`}>
+                            {submission.status}
+                          </span>
+                        </div>
+                        {submission.description && (
+                          <p className="text-sm text-muted-foreground truncate">
+                            {submission.description}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {new Date(submission.submitted_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "pending" && isAdmin && (
           <div className="bg-card rounded-xl p-6 border border-border">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Past Submissions</h2>
-            {submissions.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">No submissions yet</p>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Pending Submissions</h2>
+            {pendingSubmissions.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">No pending submissions</p>
             ) : (
-              <div className="space-y-4 max-h-[500px] overflow-y-auto">
-                {submissions.map((submission) => (
+              <div className="space-y-4">
+                {pendingSubmissions.map((submission) => (
                   <div
                     key={submission.id}
                     className="flex gap-4 p-4 bg-muted/50 rounded-lg border border-border"
@@ -275,28 +500,127 @@ const Dashboard = () => {
                       <img
                         src={submission.image_url}
                         alt="Submission"
-                        className="w-16 h-16 object-cover rounded-lg"
+                        className="w-24 h-24 object-cover rounded-lg"
                       />
                     )}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium text-foreground">{submission.hours} hours</span>
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <span className="font-medium text-foreground">{submission.hours} hours</span>
+                          <span className="text-sm text-muted-foreground ml-2">
+                            by {submission.user_name || submission.user_email || "Unknown"}
+                          </span>
+                        </div>
                         <span className="text-xs text-muted-foreground">
                           {new Date(submission.submitted_at).toLocaleDateString()}
                         </span>
                       </div>
                       {submission.description && (
-                        <p className="text-sm text-muted-foreground truncate">
+                        <p className="text-sm text-muted-foreground mb-3">
                           {submission.description}
                         </p>
                       )}
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleApproval(submission.id, true)}
+                          className="gap-1"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleApproval(submission.id, false)}
+                          className="gap-1 text-destructive hover:text-destructive"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          Reject
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-        </div>
+        )}
+
+        {activeTab === "users" && isAdmin && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Add User Form */}
+            <div className="bg-card rounded-xl p-6 border border-border">
+              <h2 className="text-lg font-semibold text-foreground mb-4">Add New User</h2>
+              <form onSubmit={handleAddUser} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="newUserName">Full Name</Label>
+                  <Input
+                    id="newUserName"
+                    type="text"
+                    placeholder="John Doe"
+                    value={newUserName}
+                    onChange={(e) => setNewUserName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newUserEmail">Email</Label>
+                  <Input
+                    id="newUserEmail"
+                    type="email"
+                    placeholder="user@example.com"
+                    value={newUserEmail}
+                    onChange={(e) => setNewUserEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newUserPassword">Password</Label>
+                  <Input
+                    id="newUserPassword"
+                    type="password"
+                    placeholder="••••••••"
+                    value={newUserPassword}
+                    onChange={(e) => setNewUserPassword(e.target.value)}
+                    required
+                    minLength={6}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={addingUser}>
+                  {addingUser ? "Adding..." : "Add User"}
+                </Button>
+              </form>
+            </div>
+
+            {/* Users List */}
+            <div className="bg-card rounded-xl p-6 border border-border">
+              <h2 className="text-lg font-semibold text-foreground mb-4">All Users</h2>
+              {users.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No users yet</p>
+              ) : (
+                <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                  {users.map((userProfile) => (
+                    <div
+                      key={userProfile.id}
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border"
+                    >
+                      <div>
+                        <p className="font-medium text-foreground">
+                          {userProfile.full_name || "No name"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{userProfile.email}</p>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(userProfile.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
