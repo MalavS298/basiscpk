@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, X, LogOut, Clock, Image, CheckCircle, XCircle, Users, Shield } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Upload, X, LogOut, Clock, Image, CheckCircle, XCircle, Users, Shield, ZoomIn } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -38,6 +39,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<"submit" | "pending" | "users">("submit");
+  const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
 
   // Form state
   const [description, setDescription] = useState("");
@@ -497,11 +499,19 @@ const Dashboard = () => {
                     className="flex gap-4 p-4 bg-muted/50 rounded-lg border border-border"
                   >
                     {submission.image_url && (
-                      <img
-                        src={submission.image_url}
-                        alt="Submission"
-                        className="w-24 h-24 object-cover rounded-lg"
-                      />
+                      <div 
+                        className="relative group cursor-pointer"
+                        onClick={() => setEnlargedImage(submission.image_url)}
+                      >
+                        <img
+                          src={submission.image_url}
+                          alt="Submission"
+                          className="w-24 h-24 object-cover rounded-lg"
+                        />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                          <ZoomIn className="w-6 h-6 text-white" />
+                        </div>
+                      </div>
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-2">
@@ -622,6 +632,19 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Image Enlarge Dialog */}
+      <Dialog open={!!enlargedImage} onOpenChange={() => setEnlargedImage(null)}>
+        <DialogContent className="max-w-4xl p-2">
+          {enlargedImage && (
+            <img
+              src={enlargedImage}
+              alt="Enlarged submission"
+              className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
