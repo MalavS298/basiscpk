@@ -3,16 +3,16 @@ const stats = [{
   value: "100+"
 }, {
   label: "Community Service Hours",
-  value: "1800"
+  value: "1800+"
 }, {
   label: "Service Projects",
   value: "25+"
 }, {
   label: "Years Established",
-  value: "10+"
+  value: "2+"
 }, {
   label: "Alumni Network",
-  value: "1800"
+  value: "20+"
 }];
 const About = () => {
   return <section id="about" className="py-24 bg-background">
