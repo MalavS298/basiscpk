@@ -1,14 +1,18 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Upload, X, LogOut, Clock, Image, CheckCircle, XCircle, Users, Shield, ZoomIn } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Upload, X, LogOut, Clock, Image, CheckCircle, XCircle, Users, Shield, ZoomIn, CalendarIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface Submission {
   id: string;
@@ -17,6 +21,7 @@ interface Submission {
   description: string | null;
   hours: number;
   submitted_at: string;
+  service_date: string;
   status: string;
   user_name?: string | null;
   user_email?: string | null;
@@ -44,6 +49,7 @@ const Dashboard = () => {
   // Form state
   const [description, setDescription] = useState("");
   const [hours, setHours] = useState("");
+  const [serviceDate, setServiceDate] = useState<Date>(new Date());
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -184,6 +190,7 @@ const Dashboard = () => {
         description,
         hours: parseFloat(hours) || 0,
         image_url: imageUrl,
+        service_date: format(serviceDate, "yyyy-MM-dd"),
         status: "pending",
       });
 
@@ -193,6 +200,7 @@ const Dashboard = () => {
       
       setDescription("");
       setHours("");
+      setServiceDate(new Date());
       setImage(null);
       setImagePreview(null);
       
@@ -389,6 +397,34 @@ const Dashboard = () => {
                     onChange={(e) => setHours(e.target.value)}
                     required
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Date of Service</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !serviceDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {serviceDate ? format(serviceDate, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={serviceDate}
+                        onSelect={(date) => date && setServiceDate(date)}
+                        disabled={(date) => date > new Date()}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div className="space-y-2">

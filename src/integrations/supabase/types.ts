@@ -43,6 +43,7 @@ export type Database = {
           hours: number
           id: string
           image_url: string | null
+          service_date: string
           status: string
           submitted_at: string
           user_id: string
@@ -54,6 +55,7 @@ export type Database = {
           hours?: number
           id?: string
           image_url?: string | null
+          service_date?: string
           status?: string
           submitted_at?: string
           user_id: string
@@ -65,6 +67,7 @@ export type Database = {
           hours?: number
           id?: string
           image_url?: string | null
+          service_date?: string
           status?: string
           submitted_at?: string
           user_id?: string
