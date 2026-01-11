@@ -6,6 +6,7 @@ import Events from "@/components/Events";
 import Membership from "@/components/Membership";
 import Benefits from "@/components/Benefits";
 import Testimonials from "@/components/Testimonials";
+import Newsletter from "@/components/Newsletter";
 import Footer from "@/components/Footer";
 
 const Index = () => {
@@ -18,6 +19,7 @@ const Index = () => {
       <Events />
       <Membership />
       <Benefits />
+      <Newsletter />
       <Testimonials />
       <Footer />
     </div>

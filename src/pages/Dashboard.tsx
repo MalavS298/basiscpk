@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Upload, X, LogOut, Clock, Image, CheckCircle, XCircle, Users, Shield, ZoomIn, CalendarIcon } from "lucide-react";
+import { Upload, X, LogOut, Clock, Image, CheckCircle, XCircle, Users, Shield, ZoomIn, CalendarIcon, Newspaper } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -43,8 +43,14 @@ const Dashboard = () => {
   const [totalHours, setTotalHours] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<"submit" | "pending" | "all" | "users">("submit");
+  const [activeTab, setActiveTab] = useState<"submit" | "pending" | "all" | "users" | "newsletters">("submit");
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
+
+  // Newsletter state
+  const [newsletters, setNewsletters] = useState<{id: string; title: string; content: string; published_at: string}[]>([]);
+  const [newsletterTitle, setNewsletterTitle] = useState("");
+  const [newsletterContent, setNewsletterContent] = useState("");
+  const [publishingNewsletter, setPublishingNewsletter] = useState(false);
 
   // Form state
   const [description, setDescription] = useState("");
@@ -71,6 +77,7 @@ const Dashboard = () => {
       if (isAdmin) {
         fetchAllSubmissions();
         fetchUsers();
+        fetchNewsletters();
       }
     }
   }, [user, isAdmin]);
@@ -139,6 +146,63 @@ const Dashboard = () => {
       setUsers(data || []);
     } catch (error) {
       console.error("Error fetching users:", error);
+    }
+  };
+
+  const fetchNewsletters = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("newsletters")
+        .select("*")
+        .order("published_at", { ascending: false });
+
+      if (error) throw error;
+      setNewsletters(data || []);
+    } catch (error) {
+      console.error("Error fetching newsletters:", error);
+    }
+  };
+
+  const handlePublishNewsletter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setPublishingNewsletter(true);
+    try {
+      const { error } = await supabase.from("newsletters").insert({
+        title: newsletterTitle,
+        content: newsletterContent,
+        created_by: user.id,
+      });
+
+      if (error) throw error;
+
+      toast.success("Newsletter published!");
+      setNewsletterTitle("");
+      setNewsletterContent("");
+      fetchNewsletters();
+    } catch (error) {
+      console.error("Error publishing newsletter:", error);
+      toast.error("Failed to publish newsletter");
+    } finally {
+      setPublishingNewsletter(false);
+    }
+  };
+
+  const handleDeleteNewsletter = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("newsletters")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast.success("Newsletter deleted");
+      fetchNewsletters();
+    } catch (error) {
+      console.error("Error deleting newsletter:", error);
+      toast.error("Failed to delete newsletter");
     }
   };
 
@@ -374,6 +438,14 @@ const Dashboard = () => {
             >
               <Users className="w-4 h-4" />
               Manage Users
+            </Button>
+            <Button
+              variant={activeTab === "newsletters" ? "default" : "outline"}
+              onClick={() => setActiveTab("newsletters")}
+              className="gap-2"
+            >
+              <Newspaper className="w-4 h-4" />
+              Newsletters
             </Button>
           </div>
         )}
@@ -734,6 +806,76 @@ const Dashboard = () => {
                       <span className="text-xs text-muted-foreground">
                         {new Date(userProfile.created_at).toLocaleDateString()}
                       </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "newsletters" && isAdmin && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Publish Newsletter Form */}
+            <div className="bg-card rounded-xl p-6 border border-border">
+              <h2 className="text-lg font-semibold text-foreground mb-4">Publish Newsletter</h2>
+              <form onSubmit={handlePublishNewsletter} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="newsletterTitle">Title</Label>
+                  <Input
+                    id="newsletterTitle"
+                    placeholder="Newsletter title"
+                    value={newsletterTitle}
+                    onChange={(e) => setNewsletterTitle(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newsletterContent">Content</Label>
+                  <Textarea
+                    id="newsletterContent"
+                    placeholder="Write your newsletter content here..."
+                    value={newsletterContent}
+                    onChange={(e) => setNewsletterContent(e.target.value)}
+                    rows={8}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={publishingNewsletter}>
+                  {publishingNewsletter ? "Publishing..." : "Publish Newsletter"}
+                </Button>
+              </form>
+            </div>
+
+            {/* Past Newsletters */}
+            <div className="bg-card rounded-xl p-6 border border-border">
+              <h2 className="text-lg font-semibold text-foreground mb-4">Published Newsletters</h2>
+              {newsletters.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No newsletters published yet</p>
+              ) : (
+                <div className="space-y-4 max-h-[500px] overflow-y-auto">
+                  {newsletters.map((newsletter) => (
+                    <div
+                      key={newsletter.id}
+                      className="p-4 bg-muted/50 rounded-lg border border-border"
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h3 className="font-medium text-foreground">{newsletter.title}</h3>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteNewsletter(newsletter.id)}
+                          className="text-destructive hover:text-destructive h-7 px-2"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-3 mb-2">
+                        {newsletter.content}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(newsletter.published_at).toLocaleDateString()}
+                      </p>
                     </div>
                   ))}
                 </div>
