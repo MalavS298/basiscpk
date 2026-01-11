@@ -15,34 +15,34 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 221 83% 53%;
+    --primary: 142 76% 36%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 140 40% 96%;
+    --secondary-foreground: 142 47% 11%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 140 40% 96%;
+    --muted-foreground: 142 16% 47%;
 
-    --accent: 221 83% 53%;
+    --accent: 142 76% 36%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%;
+    --border: 142 32% 91%;
+    --input: 142 32% 91%;
+    --ring: 142 76% 36%;
 
     --radius: 0.75rem;
 
-    /* Custom NHS Colors */
-    --nhs-blue: 221 83% 53%;
-    --nhs-blue-light: 217 91% 60%;
-    --nhs-blue-dark: 224 76% 48%;
-    --nhs-orange: 25 95% 53%;
-    --nhs-gradient-start: 221 83% 53%;
-    --nhs-gradient-end: 217 91% 65%;
+    /* Custom NJHS Colors */
+    --njhs-green: 142 76% 36%;
+    --njhs-green-light: 142 71% 45%;
+    --njhs-green-dark: 142 76% 28%;
+    --njhs-orange: 25 95% 53%;
+    --njhs-gradient-start: 142 76% 36%;
+    --njhs-gradient-end: 142 71% 50%;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5% 26%;
@@ -64,8 +64,8 @@
     --popover: 222 47% 11%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 11%;
+    --primary: 142 71% 45%;
+    --primary-foreground: 142 47% 11%;
 
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
@@ -85,12 +85,12 @@
 
     --sidebar-background: 240 6% 10%;
     --sidebar-foreground: 240 5% 96%;
-    --sidebar-primary: 224 76% 48%;
+    --sidebar-primary: 142 76% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 4% 16%;
     --sidebar-accent-foreground: 240 5% 96%;
     --sidebar-border: 240 4% 16%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-ring: 142 71% 45%;
   }
 }
 
@@ -111,7 +111,7 @@
 
 @layer components {
   .hero-gradient {
-    background: linear-gradient(135deg, hsl(221 83% 53%) 0%, hsl(217 91% 65%) 100%);
+    background: linear-gradient(135deg, hsl(142 76% 36%) 0%, hsl(142 71% 50%) 100%);
   }
 
   .floating-circle {
@@ -143,6 +143,6 @@
 @layer utilities {
   .text-gradient {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(221 83% 53%) 0%, hsl(217 91% 65%) 100%);
+    background-image: linear-gradient(135deg, hsl(142 76% 36%) 0%, hsl(142 71% 50%) 100%);
   }
 }

@@ -24,7 +24,7 @@ const Navbar = () => {
             <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-sm">B</span>
             </div>
-            <span className="font-semibold text-foreground text-lg">BASIS Cedar Park NHS</span>
+            <span className="font-semibold text-foreground text-lg">BASIS Cedar Park NJHS</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -44,7 +44,7 @@ const Navbar = () => {
           <div className="hidden lg:flex items-center gap-3">
             <Button variant="outline" size="sm" className="gap-2">
               <Users className="w-4 h-4" />
-              NHS
+              NJHS
             </Button>
             <Button variant="ghost" size="icon" className="w-9 h-9">
               <Sun className="w-4 h-4" />
