@@ -3,7 +3,7 @@ const stats = [{
   value: "150+"
 }, {
   label: "Community Service Hours",
-  value: "2,500+"
+  value: "1800"
 }, {
   label: "Service Projects",
   value: "25+"
