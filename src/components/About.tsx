@@ -1,14 +1,21 @@
-const stats = [
-  { label: "Active Members", value: "150+" },
-  { label: "Community Service Hours", value: "2,500+" },
-  { label: "Service Projects", value: "25+" },
-  { label: "Years Established", value: "10+" },
-  { label: "Alumni Network", value: "500+" },
-];
-
+const stats = [{
+  label: "Active Members",
+  value: "150+"
+}, {
+  label: "Community Service Hours",
+  value: "2,500+"
+}, {
+  label: "Service Projects",
+  value: "25+"
+}, {
+  label: "Years Established",
+  value: "10+"
+}, {
+  label: "Alumni Network",
+  value: "500+"
+}];
 const About = () => {
-  return (
-    <section id="about" className="py-24 bg-background">
+  return <section id="about" className="py-24 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6">
@@ -33,22 +40,15 @@ const About = () => {
             By the Numbers
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="bg-secondary/50 rounded-2xl p-6 text-center hover:bg-secondary transition-colors"
-              >
+            {stats.map(stat => <div key={stat.label} className="rounded-2xl p-6 text-center transition-colors bg-secondary-foreground">
                 <div className="text-3xl sm:text-4xl font-bold text-gradient mb-2">
                   {stat.value}
                 </div>
                 <div className="text-sm text-muted-foreground">{stat.label}</div>
-              </div>
-            ))}
+              </div>)}
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default About;
