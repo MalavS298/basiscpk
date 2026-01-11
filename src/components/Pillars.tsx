@@ -1,59 +1,55 @@
-import { GraduationCap, Heart, Users, Shield, Globe } from "lucide-react";
+import { BookOpen, Heart, Star, Users, Award } from "lucide-react";
 
 const pillars = [
   {
-    icon: GraduationCap,
+    icon: BookOpen,
     title: "Scholarship",
-    description: "Pursuing academic excellence through dedication to learning and intellectual growth",
+    description: "Commitment to learning and academic excellence.",
   },
   {
     icon: Heart,
     title: "Service",
-    description: "Contributing meaningfully to our school, community, and society through volunteer work",
+    description: "Voluntary contributions to the school and community.",
+  },
+  {
+    icon: Star,
+    title: "Leadership",
+    description: "Taking initiative and inspiring others to succeed.",
   },
   {
     icon: Users,
-    title: "Leadership",
-    description: "Inspiring and guiding others through positive example and collaborative action",
-  },
-  {
-    icon: Shield,
     title: "Character",
-    description: "Demonstrating integrity, honesty, and respect in all interactions and decisions",
+    description: "Demonstrating integrity, respect, and responsibility.",
   },
   {
-    icon: Globe,
+    icon: Award,
     title: "Citizenship",
-    description: "Being a responsible and engaged member of our school and community",
+    description: "Understanding civic involvement and duty.",
   },
 ];
 
 const Pillars = () => {
   return (
-    <section id="pillars" className="py-24 bg-secondary/30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="pillars" className="py-20 px-4 bg-muted">
+      <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            The Five Pillars of Honor Society
-          </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Our members embody these core values in their daily lives, both in and out of school.
-          </p>
+          <h2 className="section-title">The Five Pillars</h2>
+          <div className="section-underline" />
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
           {pillars.map((pillar, index) => (
             <div
-              key={pillar.title}
-              className={`pillar-card ${index === 4 ? "lg:col-start-2" : ""}`}
+              key={index}
+              className="pillar-card group"
             >
-              <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6">
-                <pillar.icon className="w-7 h-7 text-primary" />
+              <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center text-secondary group-hover:text-primary transition-colors">
+                <pillar.icon className="w-10 h-10" strokeWidth={1.5} />
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-3">
+              <h3 className="text-lg font-bold text-secondary mb-2">
                 {pillar.title}
               </h3>
-              <p className="text-muted-foreground leading-relaxed">
+              <p className="text-muted-foreground text-sm leading-relaxed">
                 {pillar.description}
               </p>
             </div>
