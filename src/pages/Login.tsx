@@ -1,37 +1,58 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Upload, X } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 const Login = () => {
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [image, setImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [fullName, setFullName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { signIn, signUp, user } = useAuth();
+  const navigate = useNavigate();
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
     }
-  };
+  }, [user, navigate]);
 
-  const removeImage = () => {
-    setImage(null);
-    setImagePreview(null);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", { email, password, image });
-    // Handle form submission here
+    setLoading(true);
+
+    try {
+      if (isSignUp) {
+        const { error } = await signUp(email, password, fullName);
+        if (error) {
+          if (error.message.includes("already registered")) {
+            toast.error("This email is already registered. Please sign in instead.");
+          } else {
+            toast.error(error.message);
+          }
+        } else {
+          toast.success("Account created successfully!");
+          navigate("/dashboard");
+        }
+      } else {
+        const { error } = await signIn(email, password);
+        if (error) {
+          toast.error("Invalid email or password");
+        } else {
+          toast.success("Signed in successfully!");
+          navigate("/dashboard");
+        }
+      }
+    } catch (err) {
+      toast.error("An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -42,12 +63,28 @@ const Login = () => {
           Back to home
         </Link>
         <div className="bg-card rounded-2xl p-8 shadow-lg border border-border">
-          <h1 className="text-2xl font-bold text-foreground mb-2">Sign In</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            {isSignUp ? "Create Account" : "Sign In"}
+          </h1>
           <p className="text-muted-foreground mb-6">
-            Enter your credentials and upload a picture to continue.
+            {isSignUp ? "Create your account to get started." : "Welcome back! Sign in to continue."}
           </p>
           
           <form onSubmit={handleSubmit} className="space-y-5">
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="John Doe"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required={isSignUp}
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -69,49 +106,24 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                minLength={6}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Upload Picture</Label>
-              {imagePreview ? (
-                <div className="relative">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full h-48 object-cover rounded-lg border border-border"
-                  />
-                  <button
-                    type="button"
-                    onClick={removeImage}
-                    className="absolute top-2 right-2 p-1.5 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <label
-                  htmlFor="image-upload"
-                  className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
-                >
-                  <Upload className="w-10 h-10 text-muted-foreground mb-2" />
-                  <span className="text-sm text-muted-foreground">Click to upload an image</span>
-                  <span className="text-xs text-muted-foreground mt-1">PNG, JPG up to 10MB</span>
-                  <input
-                    id="image-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                </label>
-              )}
-            </div>
-
-            <Button type="submit" className="w-full">
-              Sign In
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
             </Button>
           </form>
+
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {isSignUp ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
