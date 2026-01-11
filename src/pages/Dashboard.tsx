@@ -563,9 +563,14 @@ const Dashboard = () => {
                             by {submission.user_name || submission.user_email || "Unknown"}
                           </span>
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(submission.submitted_at).toLocaleDateString()}
-                        </span>
+                        <div className="text-right">
+                          <div className="text-xs text-muted-foreground">
+                            Service: {new Date(submission.service_date).toLocaleDateString()}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Submitted: {new Date(submission.submitted_at).toLocaleDateString()}
+                          </div>
+                        </div>
                       </div>
                       {submission.description && (
                         <p className="text-sm text-muted-foreground mb-3">
