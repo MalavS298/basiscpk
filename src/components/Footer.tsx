@@ -10,9 +10,9 @@ const Footer = () => {
               <Flame className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <div className="font-semibold text-lg">BASIS Cedar Park NHS</div>
+              <div className="font-semibold text-lg">BASIS Cedar Park NJHS</div>
               <div className="text-sm text-muted-foreground">
-                National Honor Society
+                National Junior Honor Society
               </div>
             </div>
           </div>
@@ -34,7 +34,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-muted-foreground/20 mt-12 pt-8 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} BASIS Cedar Park National Honor Society. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} BASIS Cedar Park National Junior Honor Society. All rights reserved.</p>
         </div>
       </div>
     </footer>

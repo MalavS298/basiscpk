@@ -50,11 +50,11 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        nhs: {
-          blue: "hsl(var(--nhs-blue))",
-          "blue-light": "hsl(var(--nhs-blue-light))",
-          "blue-dark": "hsl(var(--nhs-blue-dark))",
-          orange: "hsl(var(--nhs-orange))",
+        njhs: {
+          green: "hsl(var(--njhs-green))",
+          "green-light": "hsl(var(--njhs-green-light))",
+          "green-dark": "hsl(var(--njhs-green-dark))",
+          orange: "hsl(var(--njhs-orange))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",

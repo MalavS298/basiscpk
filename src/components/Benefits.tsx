@@ -4,12 +4,12 @@ const benefits = [
   {
     icon: GraduationCap,
     title: "College Recognition",
-    description: "NHS membership is highly valued by college admissions committees and demonstrates your commitment to excellence and service.",
+    description: "NJHS membership is highly valued by college admissions committees and demonstrates your commitment to excellence and service.",
   },
   {
     icon: Award,
     title: "Scholarship Opportunities",
-    description: "Access to exclusive NHS scholarships and awards, including the National Honor Society Scholarship Program.",
+    description: "Access to exclusive NJHS scholarships and awards, including the National Junior Honor Society Scholarship Program.",
   },
   {
     icon: Users,
@@ -29,7 +29,7 @@ const benefits = [
   {
     icon: Globe,
     title: "National Network",
-    description: "Join a prestigious national network of over one million NHS alumni across the United States.",
+    description: "Join a prestigious national network of over one million NJHS alumni across the United States.",
   },
 ];
 
