@@ -38,7 +38,7 @@ const Dashboard = () => {
   const [totalHours, setTotalHours] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<"submit" | "pending" | "users">("submit");
+  const [activeTab, setActiveTab] = useState<"submit" | "pending" | "all" | "users">("submit");
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
 
   // Form state
@@ -354,6 +354,12 @@ const Dashboard = () => {
               )}
             </Button>
             <Button
+              variant={activeTab === "all" ? "default" : "outline"}
+              onClick={() => setActiveTab("all")}
+            >
+              All Submissions
+            </Button>
+            <Button
               variant={activeTab === "users" ? "default" : "outline"}
               onClick={() => setActiveTab("users")}
               className="gap-2"
@@ -549,6 +555,69 @@ const Dashboard = () => {
                           Reject
                         </Button>
                       </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "all" && isAdmin && (
+          <div className="bg-card rounded-xl p-6 border border-border">
+            <h2 className="text-lg font-semibold text-foreground mb-4">All Submissions</h2>
+            {allSubmissions.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">No submissions yet</p>
+            ) : (
+              <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                {allSubmissions.map((submission) => (
+                  <div
+                    key={submission.id}
+                    className="flex gap-4 p-4 bg-muted/50 rounded-lg border border-border"
+                  >
+                    {submission.image_url && (
+                      <div 
+                        className="relative group cursor-pointer"
+                        onClick={() => setEnlargedImage(submission.image_url)}
+                      >
+                        <img
+                          src={submission.image_url}
+                          alt="Submission"
+                          className="w-24 h-24 object-cover rounded-lg"
+                        />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                          <ZoomIn className="w-6 h-6 text-white" />
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <span className="font-medium text-foreground">{submission.hours} hours</span>
+                          <span className="text-sm text-muted-foreground ml-2">
+                            by {submission.user_name || submission.user_email || "Unknown"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            submission.status === "approved" 
+                              ? "bg-green-500/10 text-green-500" 
+                              : submission.status === "rejected"
+                              ? "bg-red-500/10 text-red-500"
+                              : "bg-yellow-500/10 text-yellow-500"
+                          }`}>
+                            {submission.status}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(submission.submitted_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      {submission.description && (
+                        <p className="text-sm text-muted-foreground">
+                          {submission.description}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
