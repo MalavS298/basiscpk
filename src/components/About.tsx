@@ -12,7 +12,7 @@ const stats = [{
   value: "10+"
 }, {
   label: "Alumni Network",
-  value: "500+"
+  value: "1800"
 }];
 const About = () => {
   return <section id="about" className="py-24 bg-background">
