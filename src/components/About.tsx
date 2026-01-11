@@ -1,6 +1,6 @@
 const stats = [{
   label: "Active Members",
-  value: "150+"
+  value: "100"
 }, {
   label: "Community Service Hours",
   value: "1800"
