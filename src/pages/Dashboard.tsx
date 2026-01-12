@@ -349,6 +349,9 @@ const Dashboard = () => {
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <a href="/" className="text-muted-foreground hover:text-foreground transition-colors">
+              ← Back to Website
+            </a>
             <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
             {isAdmin && (
               <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full flex items-center gap-1">
