@@ -1,9 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-
 const Calendar = () => {
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <Navbar />
       
       {/* Header */}
@@ -19,27 +17,18 @@ const Calendar = () => {
         <div className="max-w-5xl mx-auto">
           <div className="content-card">
             <div className="aspect-video w-full">
-              <iframe
-                src="https://calendar.google.com/calendar/embed?src=3ec9be31e7b1c6830cef5984152b822afcab0a4faf966ba12a7f64f250167076%40group.calendar.google.com&ctz=America%2FChicago"
-                style={{ border: 0 }}
-                width="100%"
-                height="100%"
-                frameBorder="0"
-                scrolling="no"
-                className="rounded-lg min-h-[500px]"
-                title="NJHS Calendar"
-              />
+              <iframe src="https://calendar.google.com/calendar/embed?src=3ec9be31e7b1c6830cef5984152b822afcab0a4faf966ba12a7f64f250167076%40group.calendar.google.com&ctz=America%2FChicago" style={{
+              border: 0
+            }} width="100%" height="100%" frameBorder="0" scrolling="no" className="rounded-lg min-h-[500px]" title="NJHS Calendar" />
             </div>
             <p className="text-sm text-muted-foreground mt-4 text-center">
-              Note: This is a placeholder calendar. The actual chapter calendar will be embedded here.
+              ​
             </p>
           </div>
         </div>
       </div>
 
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default Calendar;
