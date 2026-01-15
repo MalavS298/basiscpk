@@ -9,6 +9,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Upload, X, LogOut, Clock, Image, CheckCircle, XCircle, Users, Shield, ZoomIn, CalendarIcon, Newspaper } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -56,6 +57,7 @@ const Dashboard = () => {
   const [description, setDescription] = useState("");
   const [hours, setHours] = useState("");
   const [serviceDate, setServiceDate] = useState<Date>(new Date());
+  const [serviceType, setServiceType] = useState<"synchronous" | "asynchronous">("synchronous");
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -473,6 +475,19 @@ const Dashboard = () => {
                     onChange={(e) => setHours(e.target.value)}
                     required
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Service Type</Label>
+                  <Select value={serviceType} onValueChange={(value: "synchronous" | "asynchronous") => setServiceType(value)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select service type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="synchronous">Synchronous</SelectItem>
+                      <SelectItem value="asynchronous">Asynchronous</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
