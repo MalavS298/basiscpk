@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Upload, X, LogOut, Clock, Image, CheckCircle, XCircle, Users, Shield, ZoomIn, CalendarIcon, Newspaper } from "lucide-react";
+import { Upload, X, LogOut, Clock, Image, CheckCircle, XCircle, Users, Shield, ZoomIn, CalendarIcon, Newspaper, BarChart3 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,7 +45,7 @@ const Dashboard = () => {
   const [totalHours, setTotalHours] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<"submit" | "pending" | "all" | "users" | "newsletters">("submit");
+  const [activeTab, setActiveTab] = useState<"submit" | "pending" | "all" | "users" | "newsletters" | "statistics">("submit");
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
 
   // Newsletter state
@@ -455,6 +455,14 @@ const Dashboard = () => {
             >
               <Newspaper className="w-4 h-4" />
               Newsletters
+            </Button>
+            <Button
+              variant={activeTab === "statistics" ? "default" : "outline"}
+              onClick={() => setActiveTab("statistics")}
+              className="gap-2"
+            >
+              <BarChart3 className="w-4 h-4" />
+              Statistics
             </Button>
           </div>
         )}
@@ -916,6 +924,58 @@ const Dashboard = () => {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {activeTab === "statistics" && isAdmin && (
+          <div className="bg-card rounded-xl p-6 border border-border">
+            <h2 className="text-lg font-semibold text-foreground mb-4">User Statistics</h2>
+            {users.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">No users found</p>
+            ) : (
+              <div className="space-y-3">
+                {users.map((userProfile) => {
+                  const userSubmissions = allSubmissions.filter(
+                    s => s.user_id === userProfile.id && s.status === "approved"
+                  );
+                  const userTotalHours = userSubmissions.reduce((sum, s) => sum + Number(s.hours), 0);
+                  const syncHours = userSubmissions
+                    .filter(s => s.service_type === "synchronous")
+                    .reduce((sum, s) => sum + Number(s.hours), 0);
+                  const asyncHours = userSubmissions
+                    .filter(s => s.service_type === "asynchronous")
+                    .reduce((sum, s) => sum + Number(s.hours), 0);
+
+                  return (
+                    <div
+                      key={userProfile.id}
+                      className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border"
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground">
+                          {userProfile.full_name || "No name"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{userProfile.email}</p>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <div className="text-center">
+                          <p className="text-xs text-muted-foreground">Synchronous</p>
+                          <p className="text-lg font-semibold text-purple-500">{syncHours.toFixed(1)}h</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xs text-muted-foreground">Asynchronous</p>
+                          <p className="text-lg font-semibold text-blue-500">{asyncHours.toFixed(1)}h</p>
+                        </div>
+                        <div className="text-center border-l border-border pl-6">
+                          <p className="text-xs text-muted-foreground">Total</p>
+                          <p className="text-xl font-bold text-primary">{userTotalHours.toFixed(1)}h</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
