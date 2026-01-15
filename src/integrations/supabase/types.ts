@@ -68,6 +68,7 @@ export type Database = {
           id: string
           image_url: string | null
           service_date: string
+          service_type: string
           status: string
           submitted_at: string
           user_id: string
@@ -80,6 +81,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           service_date?: string
+          service_type?: string
           status?: string
           submitted_at?: string
           user_id: string
@@ -92,6 +94,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           service_date?: string
+          service_type?: string
           status?: string
           submitted_at?: string
           user_id?: string
