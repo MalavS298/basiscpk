@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Upload, X, LogOut, Clock, Image, CheckCircle, XCircle, Users, Shield, ZoomIn, CalendarIcon, Newspaper, BarChart3 } from "lucide-react";
+import { Upload, X, LogOut, Clock, Image, CheckCircle, XCircle, Users, Shield, ZoomIn, CalendarIcon, Newspaper, BarChart3, Plus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +35,145 @@ interface UserProfile {
   full_name: string | null;
   created_at: string;
 }
+
+// Add Hours Form Component
+const AddHoursForm = ({ users, onSuccess }: { users: UserProfile[], onSuccess: () => void }) => {
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [hours, setHours] = useState("");
+  const [serviceType, setServiceType] = useState<"synchronous" | "asynchronous">("synchronous");
+  const [description, setDescription] = useState("");
+  const [serviceDate, setServiceDate] = useState<Date>(new Date());
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUserId) {
+      toast.error("Please select a user");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from("submissions").insert({
+        user_id: selectedUserId,
+        description,
+        hours: parseFloat(hours) || 0,
+        service_date: format(serviceDate, "yyyy-MM-dd"),
+        service_type: serviceType,
+        status: "approved",
+        approved_at: new Date().toISOString(),
+      });
+
+      if (error) throw error;
+
+      toast.success("Hours added successfully!");
+      setSelectedUserId("");
+      setHours("");
+      setDescription("");
+      setServiceDate(new Date());
+      setServiceType("synchronous");
+      onSuccess();
+    } catch (error) {
+      console.error("Error adding hours:", error);
+      toast.error("Failed to add hours");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Manually Add Hours</DialogTitle>
+      </DialogHeader>
+      <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+        <div className="space-y-2">
+          <Label>Select User</Label>
+          <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Choose a user" />
+            </SelectTrigger>
+            <SelectContent>
+              {users.map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.full_name || u.email || "Unknown"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Hours</Label>
+          <Input
+            type="number"
+            step="0.5"
+            min="0"
+            placeholder="Enter hours"
+            value={hours}
+            onChange={(e) => setHours(e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Service Type</Label>
+          <Select value={serviceType} onValueChange={(value: "synchronous" | "asynchronous") => setServiceType(value)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select service type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="synchronous">Synchronous</SelectItem>
+              <SelectItem value="asynchronous">Asynchronous</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Date of Service</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !serviceDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {serviceDate ? format(serviceDate, "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={serviceDate}
+                onSelect={(date) => date && setServiceDate(date)}
+                disabled={(date) => date > new Date()}
+                initialFocus
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Description (Optional)</Label>
+          <Textarea
+            placeholder="Enter description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={2}
+          />
+        </div>
+
+        <Button type="submit" className="w-full" disabled={submitting}>
+          {submitting ? "Adding..." : "Add Hours"}
+        </Button>
+      </form>
+    </>
+  );
+};
 
 const Dashboard = () => {
   const { user, loading: authLoading, signOut, isAdmin } = useAuth();
@@ -928,54 +1067,101 @@ const Dashboard = () => {
         )}
 
         {activeTab === "statistics" && isAdmin && (
-          <div className="bg-card rounded-xl p-6 border border-border">
-            <h2 className="text-lg font-semibold text-foreground mb-4">User Statistics</h2>
-            {users.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">No users found</p>
-            ) : (
-              <div className="space-y-3">
-                {users.map((userProfile) => {
-                  const userSubmissions = allSubmissions.filter(
-                    s => s.user_id === userProfile.id && s.status === "approved"
-                  );
-                  const userTotalHours = userSubmissions.reduce((sum, s) => sum + Number(s.hours), 0);
-                  const syncHours = userSubmissions
-                    .filter(s => s.service_type === "synchronous")
-                    .reduce((sum, s) => sum + Number(s.hours), 0);
-                  const asyncHours = userSubmissions
-                    .filter(s => s.service_type === "asynchronous")
-                    .reduce((sum, s) => sum + Number(s.hours), 0);
-
-                  return (
-                    <div
-                      key={userProfile.id}
-                      className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border"
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium text-foreground">
-                          {userProfile.full_name || "No name"}
-                        </p>
-                        <p className="text-sm text-muted-foreground">{userProfile.email}</p>
-                      </div>
-                      <div className="flex items-center gap-6">
-                        <div className="text-center">
-                          <p className="text-xs text-muted-foreground">Synchronous</p>
-                          <p className="text-lg font-semibold text-purple-500">{syncHours.toFixed(1)}h</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-xs text-muted-foreground">Asynchronous</p>
-                          <p className="text-lg font-semibold text-blue-500">{asyncHours.toFixed(1)}h</p>
-                        </div>
-                        <div className="text-center border-l border-border pl-6">
-                          <p className="text-xs text-muted-foreground">Total</p>
-                          <p className="text-xl font-bold text-primary">{userTotalHours.toFixed(1)}h</p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+          <div className="space-y-6">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-card rounded-xl p-6 border border-border">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-primary/10 rounded-lg">
+                    <Users className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Members</p>
+                    <p className="text-3xl font-bold text-foreground">{users.length}</p>
+                  </div>
+                </div>
               </div>
-            )}
+              <div className="bg-card rounded-xl p-6 border border-border">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-green-500/10 rounded-lg">
+                    <Clock className="w-6 h-6 text-green-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Organization Total Hours</p>
+                    <p className="text-3xl font-bold text-foreground">
+                      {allSubmissions
+                        .filter(s => s.status === "approved")
+                        .reduce((sum, s) => sum + Number(s.hours), 0)
+                        .toFixed(1)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* User Statistics */}
+            <div className="bg-card rounded-xl p-6 border border-border">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-foreground">User Statistics</h2>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="gap-2">
+                      <Plus className="w-4 h-4" />
+                      Add Hours
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <AddHoursForm users={users} onSuccess={() => { fetchAllSubmissions(); fetchSubmissions(); }} />
+                  </DialogContent>
+                </Dialog>
+              </div>
+              {users.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No users found</p>
+              ) : (
+                <div className="space-y-3">
+                  {users.map((userProfile) => {
+                    const userSubmissions = allSubmissions.filter(
+                      s => s.user_id === userProfile.id && s.status === "approved"
+                    );
+                    const userTotalHours = userSubmissions.reduce((sum, s) => sum + Number(s.hours), 0);
+                    const syncHours = userSubmissions
+                      .filter(s => s.service_type === "synchronous")
+                      .reduce((sum, s) => sum + Number(s.hours), 0);
+                    const asyncHours = userSubmissions
+                      .filter(s => s.service_type === "asynchronous")
+                      .reduce((sum, s) => sum + Number(s.hours), 0);
+
+                    return (
+                      <div
+                        key={userProfile.id}
+                        className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium text-foreground">
+                            {userProfile.full_name || "No name"}
+                          </p>
+                          <p className="text-sm text-muted-foreground">{userProfile.email}</p>
+                        </div>
+                        <div className="flex items-center gap-6">
+                          <div className="text-center">
+                            <p className="text-xs text-muted-foreground">Synchronous</p>
+                            <p className="text-lg font-semibold text-purple-500">{syncHours.toFixed(1)}h</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs text-muted-foreground">Asynchronous</p>
+                            <p className="text-lg font-semibold text-blue-500">{asyncHours.toFixed(1)}h</p>
+                          </div>
+                          <div className="text-center border-l border-border pl-6">
+                            <p className="text-xs text-muted-foreground">Total</p>
+                            <p className="text-xl font-bold text-primary">{userTotalHours.toFixed(1)}h</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
