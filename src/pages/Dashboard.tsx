@@ -23,6 +23,7 @@ interface Submission {
   hours: number;
   submitted_at: string;
   service_date: string;
+  service_type: string;
   status: string;
   user_name?: string | null;
   user_email?: string | null;
@@ -257,6 +258,7 @@ const Dashboard = () => {
         hours: parseFloat(hours) || 0,
         image_url: imageUrl,
         service_date: format(serviceDate, "yyyy-MM-dd"),
+        service_type: serviceType,
         status: "pending",
       });
 
@@ -267,6 +269,7 @@ const Dashboard = () => {
       setDescription("");
       setHours("");
       setServiceDate(new Date());
+      setServiceType("synchronous");
       setImage(null);
       setImagePreview(null);
       
@@ -529,42 +532,48 @@ const Dashboard = () => {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Upload Picture</Label>
-                  {imagePreview ? (
-                    <div className="relative">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="w-full h-40 object-cover rounded-lg border border-border"
-                      />
-                      <button
-                        type="button"
-                        onClick={removeImage}
-                        className="absolute top-2 right-2 p-1.5 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 transition-colors"
+                {serviceType === "asynchronous" && (
+                  <div className="space-y-2">
+                    <Label>Photo Evidence (Required)</Label>
+                    {imagePreview ? (
+                      <div className="relative">
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="w-full h-40 object-cover rounded-lg border border-border"
+                        />
+                        <button
+                          type="button"
+                          onClick={removeImage}
+                          className="absolute top-2 right-2 p-1.5 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label
+                        htmlFor="image-upload"
+                        className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
                       >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label
-                      htmlFor="image-upload"
-                      className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
-                    >
-                      <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-                      <span className="text-sm text-muted-foreground">Click to upload</span>
-                      <input
-                        id="image-upload"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
-                </div>
+                        <Upload className="w-8 h-8 text-muted-foreground mb-2" />
+                        <span className="text-sm text-muted-foreground">Click to upload (required)</span>
+                        <input
+                          id="image-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+                )}
 
-                <Button type="submit" className="w-full" disabled={submitting}>
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={submitting || (serviceType === "asynchronous" && !image)}
+                >
                   {submitting ? "Submitting..." : "Submit"}
                 </Button>
               </form>
@@ -652,6 +661,13 @@ const Dashboard = () => {
                           <span className="font-medium text-foreground">{submission.hours} hours</span>
                           <span className="text-sm text-muted-foreground ml-2">
                             by {submission.user_name || submission.user_email || "Unknown"}
+                          </span>
+                          <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
+                            submission.service_type === "asynchronous" 
+                              ? "bg-blue-500/10 text-blue-500" 
+                              : "bg-purple-500/10 text-purple-500"
+                          }`}>
+                            {submission.service_type || "synchronous"}
                           </span>
                         </div>
                         <div className="text-right">
