@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Upload, X, LogOut, Clock, Image, CheckCircle, XCircle, Users, Shield, ZoomIn, CalendarIcon, Newspaper, BarChart3, Plus } from "lucide-react";
+import { Upload, X, LogOut, Clock, Image, CheckCircle, XCircle, Users, Shield, ZoomIn, CalendarIcon, Newspaper, BarChart3, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -172,6 +172,128 @@ const AddHoursForm = ({ users, onSuccess }: { users: UserProfile[], onSuccess: (
         </Button>
       </form>
     </>
+  );
+};
+
+// User Statistics List Component with expandable submissions
+const UserStatisticsList = ({ 
+  users, 
+  allSubmissions, 
+  onDeleteSubmission 
+}: { 
+  users: UserProfile[], 
+  allSubmissions: Submission[], 
+  onDeleteSubmission: (id: string) => void 
+}) => {
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+
+  if (users.length === 0) {
+    return <p className="text-muted-foreground text-center py-8">No users found</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {users.map((userProfile) => {
+        const userSubmissions = allSubmissions.filter(
+          s => s.user_id === userProfile.id && s.status === "approved"
+        );
+        const userTotalHours = userSubmissions.reduce((sum, s) => sum + Number(s.hours), 0);
+        const syncHours = userSubmissions
+          .filter(s => s.service_type === "synchronous")
+          .reduce((sum, s) => sum + Number(s.hours), 0);
+        const asyncHours = userSubmissions
+          .filter(s => s.service_type === "asynchronous")
+          .reduce((sum, s) => sum + Number(s.hours), 0);
+        const isExpanded = expandedUserId === userProfile.id;
+
+        return (
+          <div key={userProfile.id} className="bg-muted/50 rounded-lg border border-border overflow-hidden">
+            <div
+              className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/80 transition-colors"
+              onClick={() => setExpandedUserId(isExpanded ? null : userProfile.id)}
+            >
+              <div className="flex items-center gap-3 flex-1">
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                  {isExpanded ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </Button>
+                <div>
+                  <p className="font-medium text-foreground">
+                    {userProfile.full_name || "No name"}
+                  </p>
+                  <p className="text-sm text-muted-foreground">{userProfile.email}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">Synchronous</p>
+                  <p className="text-lg font-semibold text-purple-500">{syncHours.toFixed(1)}h</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">Asynchronous</p>
+                  <p className="text-lg font-semibold text-blue-500">{asyncHours.toFixed(1)}h</p>
+                </div>
+                <div className="text-center border-l border-border pl-6">
+                  <p className="text-xs text-muted-foreground">Total</p>
+                  <p className="text-xl font-bold text-primary">{userTotalHours.toFixed(1)}h</p>
+                </div>
+              </div>
+            </div>
+
+            {isExpanded && (
+              <div className="border-t border-border p-4 bg-background/50">
+                {userSubmissions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-2">No approved submissions</p>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-muted-foreground mb-3">Approved Submissions:</p>
+                    {userSubmissions.map((submission) => (
+                      <div
+                        key={submission.id}
+                        className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground">{Number(submission.hours).toFixed(1)}h</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              submission.service_type === "synchronous"
+                                ? "bg-purple-500/10 text-purple-500"
+                                : "bg-blue-500/10 text-blue-500"
+                            }`}>
+                              {submission.service_type}
+                            </span>
+                          </div>
+                          {submission.description && (
+                            <p className="text-sm text-muted-foreground mt-1">{submission.description}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Service date: {new Date(submission.service_date).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteSubmission(submission.id);
+                          }}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 };
 
@@ -345,6 +467,24 @@ const Dashboard = () => {
     } catch (error) {
       console.error("Error deleting newsletter:", error);
       toast.error("Failed to delete newsletter");
+    }
+  };
+
+  const handleDeleteSubmission = async (submissionId: string) => {
+    try {
+      const { error } = await supabase
+        .from("submissions")
+        .delete()
+        .eq("id", submissionId);
+
+      if (error) throw error;
+
+      toast.success("Submission deleted");
+      fetchAllSubmissions();
+      fetchSubmissions();
+    } catch (error) {
+      console.error("Error deleting submission:", error);
+      toast.error("Failed to delete submission");
     }
   };
 
@@ -1115,52 +1255,11 @@ const Dashboard = () => {
                   </DialogContent>
                 </Dialog>
               </div>
-              {users.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No users found</p>
-              ) : (
-                <div className="space-y-3">
-                  {users.map((userProfile) => {
-                    const userSubmissions = allSubmissions.filter(
-                      s => s.user_id === userProfile.id && s.status === "approved"
-                    );
-                    const userTotalHours = userSubmissions.reduce((sum, s) => sum + Number(s.hours), 0);
-                    const syncHours = userSubmissions
-                      .filter(s => s.service_type === "synchronous")
-                      .reduce((sum, s) => sum + Number(s.hours), 0);
-                    const asyncHours = userSubmissions
-                      .filter(s => s.service_type === "asynchronous")
-                      .reduce((sum, s) => sum + Number(s.hours), 0);
-
-                    return (
-                      <div
-                        key={userProfile.id}
-                        className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border"
-                      >
-                        <div className="flex-1">
-                          <p className="font-medium text-foreground">
-                            {userProfile.full_name || "No name"}
-                          </p>
-                          <p className="text-sm text-muted-foreground">{userProfile.email}</p>
-                        </div>
-                        <div className="flex items-center gap-6">
-                          <div className="text-center">
-                            <p className="text-xs text-muted-foreground">Synchronous</p>
-                            <p className="text-lg font-semibold text-purple-500">{syncHours.toFixed(1)}h</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-xs text-muted-foreground">Asynchronous</p>
-                            <p className="text-lg font-semibold text-blue-500">{asyncHours.toFixed(1)}h</p>
-                          </div>
-                          <div className="text-center border-l border-border pl-6">
-                            <p className="text-xs text-muted-foreground">Total</p>
-                            <p className="text-xl font-bold text-primary">{userTotalHours.toFixed(1)}h</p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              <UserStatisticsList 
+                users={users} 
+                allSubmissions={allSubmissions} 
+                onDeleteSubmission={handleDeleteSubmission}
+              />
             </div>
           </div>
         )}
