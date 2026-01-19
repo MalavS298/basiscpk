@@ -24,7 +24,7 @@ const pillars = [
   {
     icon: Award,
     title: "Citizenship",
-    description: "Understanding civic involvement and duty.",
+    description: "Understanding duties and actions individuals owe to their society.",
   },
 ];
 
