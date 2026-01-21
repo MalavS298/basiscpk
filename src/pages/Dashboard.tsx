@@ -304,6 +304,8 @@ const Dashboard = () => {
   const [allSubmissions, setAllSubmissions] = useState<Submission[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [totalHours, setTotalHours] = useState(0);
+  const [syncHours, setSyncHours] = useState(0);
+  const [asyncHours, setAsyncHours] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<"submit" | "pending" | "all" | "users" | "newsletters" | "statistics">("submit");
@@ -359,7 +361,15 @@ const Dashboard = () => {
       setSubmissions(data || []);
       const approvedSubmissions = (data || []).filter(s => s.status === "approved");
       const total = approvedSubmissions.reduce((sum, sub) => sum + Number(sub.hours), 0);
+      const syncTotal = approvedSubmissions
+        .filter(s => s.service_type === "synchronous")
+        .reduce((sum, sub) => sum + Number(sub.hours), 0);
+      const asyncTotal = approvedSubmissions
+        .filter(s => s.service_type === "asynchronous")
+        .reduce((sum, sub) => sum + Number(sub.hours), 0);
       setTotalHours(total);
+      setSyncHours(syncTotal);
+      setAsyncHours(asyncTotal);
     } catch (error) {
       console.error("Error fetching submissions:", error);
       toast.error("Failed to load submissions");
@@ -654,15 +664,26 @@ const Dashboard = () => {
 
       <div className="container mx-auto px-4 py-8">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-card rounded-xl p-6 border border-border">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-primary/10 rounded-lg">
-                <Clock className="w-6 h-6 text-primary" />
+              <div className="p-3 bg-blue-500/10 rounded-lg">
+                <Users className="w-6 h-6 text-blue-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Approved Hours</p>
-                <p className="text-3xl font-bold text-foreground">{totalHours.toFixed(1)}</p>
+                <p className="text-sm text-muted-foreground">Sync Hours</p>
+                <p className="text-3xl font-bold text-foreground">{syncHours.toFixed(1)}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-card rounded-xl p-6 border border-border">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-green-500/10 rounded-lg">
+                <Clock className="w-6 h-6 text-green-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Async Hours</p>
+                <p className="text-3xl font-bold text-foreground">{asyncHours.toFixed(1)}</p>
               </div>
             </div>
           </div>
