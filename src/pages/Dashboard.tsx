@@ -330,6 +330,7 @@ const Dashboard = () => {
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserName, setNewUserName] = useState("");
   const [addingUser, setAddingUser] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -619,6 +620,48 @@ const Dashboard = () => {
       toast.error(error.message || "Failed to add user");
     } finally {
       setAddingUser(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm("Are you sure you want to delete this user? This will also delete all their submissions.")) {
+      return;
+    }
+
+    setDeletingUserId(userId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Not authenticated");
+        return;
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ userId }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to delete user");
+      }
+
+      toast.success("User deleted successfully");
+      fetchUsers();
+      fetchAllSubmissions();
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      toast.error(error.message || "Failed to delete user");
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -1146,9 +1189,24 @@ const Dashboard = () => {
                         </p>
                         <p className="text-sm text-muted-foreground">{userProfile.email}</p>
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(userProfile.created_at).toLocaleDateString()}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(userProfile.created_at).toLocaleDateString()}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteUser(userProfile.id)}
+                          disabled={deletingUserId === userProfile.id}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
+                        >
+                          {deletingUserId === userProfile.id ? (
+                            <span className="animate-spin">⋯</span>
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
