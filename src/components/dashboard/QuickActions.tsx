@@ -1,0 +1,86 @@
+import { Clock, Heart, Users, Inbox, ArrowRight, Newspaper, BarChart3 } from "lucide-react";
+
+type TabType = "submit" | "pending" | "all" | "users" | "newsletters" | "statistics";
+
+interface QuickActionsProps {
+  isAdmin: boolean;
+  setActiveTab: (tab: TabType) => void;
+  onSubmitHours: () => void;
+}
+
+const QuickActions = ({ isAdmin, setActiveTab, onSubmitHours }: QuickActionsProps) => {
+  const userActions = [
+    { label: "Submit Hours", icon: Clock, color: "text-blue-600", action: onSubmitHours },
+  ];
+
+  const adminActions = [
+    { label: "Manage Members", icon: Users, color: "text-purple-600", action: () => setActiveTab("users") },
+    { label: "Hours Inbox", icon: Inbox, color: "text-emerald-600", action: () => setActiveTab("pending") },
+    { label: "View Statistics", icon: BarChart3, color: "text-amber-600", action: () => setActiveTab("statistics") },
+    { label: "Newsletters", icon: Newspaper, color: "text-pink-600", action: () => setActiveTab("newsletters") },
+  ];
+
+  return (
+    <div className={`grid ${isAdmin ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"} gap-6`}>
+      {/* Quick Actions */}
+      <div className="bg-card rounded-xl p-6 border border-border">
+        <div className="flex items-center gap-2 mb-2">
+          <Clock className="w-5 h-5 text-primary" />
+          <h3 className="text-lg font-semibold text-foreground">Quick Actions</h3>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">Common tasks you might want to complete</p>
+        
+        <div className="space-y-2">
+          {userActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <button
+                key={action.label}
+                onClick={action.action}
+                className="w-full flex items-center justify-between p-4 rounded-lg border border-border hover:border-primary/50 hover:bg-muted/50 transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`w-5 h-5 ${action.color}`} />
+                  <span className={`font-medium ${action.color}`}>{action.label}</span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Admin Actions */}
+      {isAdmin && (
+        <div className="bg-card rounded-xl p-6 border border-border">
+          <div className="flex items-center gap-2 mb-2">
+            <Users className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-semibold text-foreground">Admin Actions</h3>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">Administrative functions available to you</p>
+          
+          <div className="space-y-2">
+            {adminActions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={action.label}
+                  onClick={action.action}
+                  className="w-full flex items-center justify-between p-4 rounded-lg border border-border hover:border-primary/50 hover:bg-muted/50 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className={`w-5 h-5 ${action.color}`} />
+                    <span className={`font-medium ${action.color}`}>{action.label}</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default QuickActions;
