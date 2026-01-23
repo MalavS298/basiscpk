@@ -107,7 +107,7 @@ const AddHoursForm = ({ users, onSuccess }: { users: UserProfile[], onSuccess: (
           <Label>Hours</Label>
           <Input
             type="number"
-            step="0.5"
+            step="0.01"
             min="0"
             placeholder="Enter hours"
             value={hours}
@@ -822,7 +822,7 @@ const Dashboard = () => {
                   <Input
                     id="hours"
                     type="number"
-                    step="0.5"
+                    step="0.01"
                     min="0"
                     placeholder="Enter hours"
                     value={hours}
