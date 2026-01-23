@@ -3,11 +3,14 @@ import {
   LayoutDashboard, 
   Users, 
   Inbox, 
-  Clock, 
   Newspaper, 
   BarChart3,
-  FileText
+  FileText,
+  Moon,
+  Sun
 } from "lucide-react";
+import { useTheme } from "next-themes";
+import { Button } from "@/components/ui/button";
 
 type TabType = "submit" | "pending" | "all" | "users" | "newsletters" | "statistics";
 
@@ -26,6 +29,8 @@ interface NavItem {
 }
 
 const DashboardSidebar = ({ activeTab, setActiveTab, isAdmin, pendingCount = 0 }: DashboardSidebarProps) => {
+  const { theme, setTheme } = useTheme();
+
   const userNavItems: NavItem[] = [
     { id: "submit", label: "Overview", icon: LayoutDashboard },
   ];
@@ -41,14 +46,18 @@ const DashboardSidebar = ({ activeTab, setActiveTab, isAdmin, pendingCount = 0 }
 
   const navItems = isAdmin ? adminNavItems : userNavItems;
 
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
+
   return (
-    <aside className="w-64 min-h-screen border-r border-border bg-card p-6">
+    <aside className="w-64 min-h-screen border-r border-border bg-card p-6 flex flex-col">
       <div className="flex items-center gap-2 mb-8">
         <div className="w-1 h-6 bg-primary rounded-full" />
         <h2 className="text-xl font-bold text-primary font-display">Dashboard</h2>
       </div>
 
-      <nav className="space-y-1">
+      <nav className="space-y-1 flex-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -71,13 +80,34 @@ const DashboardSidebar = ({ activeTab, setActiveTab, isAdmin, pendingCount = 0 }
                   {item.badge}
                 </span>
               )}
-              {isActive && (
+              {isActive && !item.badge && (
                 <span className="ml-auto w-2 h-2 bg-primary rounded-full" />
               )}
             </button>
           );
         })}
       </nav>
+
+      {/* Theme Toggle */}
+      <div className="pt-4 border-t border-border">
+        <Button
+          variant="ghost"
+          onClick={toggleTheme}
+          className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground"
+        >
+          {theme === "dark" ? (
+            <>
+              <Sun className="w-5 h-5" />
+              <span>Light Mode</span>
+            </>
+          ) : (
+            <>
+              <Moon className="w-5 h-5" />
+              <span>Dark Mode</span>
+            </>
+          )}
+        </Button>
+      </div>
     </aside>
   );
 };
