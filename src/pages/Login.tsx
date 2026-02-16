@@ -19,7 +19,7 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
+    if (user && !window.location.pathname.includes("reset-password")) {
       navigate("/dashboard");
     }
   }, [user, navigate]);
