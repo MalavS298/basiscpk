@@ -12,6 +12,7 @@ const ResetPassword = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [isRecovery, setIsRecovery] = useState(false);
+  const [checking, setChecking] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,7 +27,13 @@ const ResetPassword = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Give time for the auth state change to fire
+    const timeout = setTimeout(() => setChecking(false), 1500);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,6 +58,14 @@ const ResetPassword = () => {
       navigate("/dashboard");
     }
   };
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <p className="text-muted-foreground">Verifying reset link...</p>
+      </div>
+    );
+  }
 
   if (!isRecovery) {
     return (
