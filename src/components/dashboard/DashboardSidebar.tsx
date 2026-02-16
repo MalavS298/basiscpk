@@ -5,16 +5,18 @@ import {
   Inbox, 
   Newspaper, 
   BarChart3,
-  FileText
+  FileText,
+  Mail
 } from "lucide-react";
 
-type TabType = "submit" | "pending" | "all" | "users" | "newsletters" | "statistics";
+type TabType = "submit" | "pending" | "all" | "users" | "newsletters" | "statistics" | "inbox";
 
 interface DashboardSidebarProps {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
   isAdmin: boolean;
   pendingCount?: number;
+  unreadMessageCount?: number;
 }
 
 interface NavItem {
@@ -24,15 +26,17 @@ interface NavItem {
   badge?: number;
 }
 
-const DashboardSidebar = ({ activeTab, setActiveTab, isAdmin, pendingCount = 0 }: DashboardSidebarProps) => {
+const DashboardSidebar = ({ activeTab, setActiveTab, isAdmin, pendingCount = 0, unreadMessageCount = 0 }: DashboardSidebarProps) => {
   const userNavItems: NavItem[] = [
     { id: "submit", label: "Overview", icon: LayoutDashboard },
+    { id: "inbox", label: "Inbox", icon: Mail },
   ];
 
   const adminNavItems: NavItem[] = [
     { id: "submit", label: "Overview", icon: LayoutDashboard },
     { id: "users", label: "Manage Users", icon: Users },
     { id: "pending", label: "Hours Inbox", icon: Inbox, badge: pendingCount },
+    { id: "inbox", label: "Inbox", icon: Mail, badge: unreadMessageCount },
     { id: "statistics", label: "Statistics", icon: BarChart3 },
     { id: "newsletters", label: "Newsletters", icon: Newspaper },
     { id: "all", label: "All Submissions", icon: FileText },

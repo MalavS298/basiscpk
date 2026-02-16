@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Upload, X, Clock, CheckCircle, XCircle, ZoomIn, CalendarIcon, Plus, Trash2, ChevronDown, ChevronUp, Home } from "lucide-react";
+import { Upload, X, Clock, CheckCircle, XCircle, ZoomIn, CalendarIcon, Plus, Trash2, ChevronDown, ChevronUp, Home, Send } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -312,7 +312,7 @@ const Dashboard = () => {
   const [asyncHours, setAsyncHours] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<"submit" | "pending" | "all" | "users" | "newsletters" | "statistics">("submit");
+  const [activeTab, setActiveTab] = useState<"submit" | "pending" | "all" | "users" | "newsletters" | "statistics" | "inbox">("submit");
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
   const [showSubmitForm, setShowSubmitForm] = useState(false);
 
@@ -337,6 +337,12 @@ const Dashboard = () => {
   const [addingUser, setAddingUser] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
+  // Inbox state
+  const [messages, setMessages] = useState<{id: string; user_id: string; subject: string; description: string; created_at: string; read: boolean; user_name?: string; user_email?: string}[]>([]);
+  const [messageSubject, setMessageSubject] = useState("");
+  const [messageDescription, setMessageDescription] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+
   // Get user's name from profiles
   const [userName, setUserName] = useState<string | null>(null);
 
@@ -350,6 +356,7 @@ const Dashboard = () => {
     if (user) {
       fetchSubmissions();
       fetchUserProfile();
+      fetchMessages();
       if (isAdmin) {
         fetchAllSubmissions();
         fetchUsers();
@@ -457,6 +464,93 @@ const Dashboard = () => {
       setNewsletters(data || []);
     } catch (error) {
       console.error("Error fetching newsletters:", error);
+    }
+  };
+
+  const fetchMessages = async () => {
+    try {
+      const { data: messagesData, error } = await supabase
+        .from("messages")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      if (isAdmin) {
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("id, full_name, email");
+
+        const profilesMap = new Map(
+          (profilesData || []).map(p => [p.id, p])
+        );
+
+        setMessages((messagesData || []).map(m => ({
+          ...m,
+          user_name: profilesMap.get(m.user_id)?.full_name,
+          user_email: profilesMap.get(m.user_id)?.email,
+        })));
+      } else {
+        setMessages(messagesData || []);
+      }
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setSendingMessage(true);
+    try {
+      const { error } = await supabase.from("messages").insert({
+        user_id: user.id,
+        subject: messageSubject,
+        description: messageDescription,
+      });
+
+      if (error) throw error;
+
+      toast.success("Message sent to admins!");
+      setMessageSubject("");
+      setMessageDescription("");
+      fetchMessages();
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast.error("Failed to send message");
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  const handleMarkMessageRead = async (messageId: string) => {
+    try {
+      const { error } = await supabase
+        .from("messages")
+        .update({ read: true })
+        .eq("id", messageId);
+
+      if (error) throw error;
+      fetchMessages();
+    } catch (error) {
+      console.error("Error marking message as read:", error);
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      const { error } = await supabase
+        .from("messages")
+        .delete()
+        .eq("id", messageId);
+
+      if (error) throw error;
+      toast.success("Message deleted");
+      fetchMessages();
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      toast.error("Failed to delete message");
     }
   };
 
@@ -702,6 +796,7 @@ const Dashboard = () => {
   }
 
   const pendingSubmissions = allSubmissions.filter(s => s.status === "pending");
+  const unreadMessages = messages.filter(m => !m.read);
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -711,6 +806,7 @@ const Dashboard = () => {
         setActiveTab={setActiveTab} 
         isAdmin={isAdmin} 
         pendingCount={pendingSubmissions.length}
+        unreadMessageCount={isAdmin ? unreadMessages.length : 0}
       />
 
       {/* Main Content */}
@@ -1286,6 +1382,106 @@ const Dashboard = () => {
                   allSubmissions={allSubmissions} 
                   onDeleteSubmission={handleDeleteSubmission}
                 />
+              </div>
+            </div>
+          )}
+
+          {activeTab === "inbox" && (
+            <div className="space-y-6">
+              {/* Send Message Form (for all users) */}
+              <div className="bg-card rounded-xl p-6 border border-border">
+                <h2 className="text-lg font-semibold text-foreground mb-4">Send Message to Admins</h2>
+                <form onSubmit={handleSendMessage} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="messageSubject">Subject</Label>
+                    <Input
+                      id="messageSubject"
+                      placeholder="Message subject"
+                      value={messageSubject}
+                      onChange={(e) => setMessageSubject(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="messageDescription">Description</Label>
+                    <Textarea
+                      id="messageDescription"
+                      placeholder="Write your message here..."
+                      value={messageDescription}
+                      onChange={(e) => setMessageDescription(e.target.value)}
+                      rows={4}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full gap-2" disabled={sendingMessage}>
+                    <Send className="w-4 h-4" />
+                    {sendingMessage ? "Sending..." : "Send Message"}
+                  </Button>
+                </form>
+              </div>
+
+              {/* My Sent Messages (for regular users) / All Messages (for admins) */}
+              <div className="bg-card rounded-xl p-6 border border-border">
+                <h2 className="text-lg font-semibold text-foreground mb-4">
+                  {isAdmin ? "All Messages" : "My Sent Messages"}
+                </h2>
+                {messages.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">No messages yet</p>
+                ) : (
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                    {messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={cn(
+                          "p-4 rounded-lg border border-border",
+                          !message.read && isAdmin ? "bg-primary/5 border-primary/20" : "bg-muted/50"
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium text-foreground">{message.subject}</h3>
+                              {!message.read && isAdmin && (
+                                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">New</span>
+                              )}
+                            </div>
+                            {isAdmin && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                From: {message.user_name || message.user_email || "Unknown"}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {isAdmin && !message.read && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleMarkMessageRead(message.id)}
+                                className="text-xs h-7 px-2"
+                              >
+                                Mark Read
+                              </Button>
+                            )}
+                            {isAdmin && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteMessage(message.id)}
+                                className="text-destructive hover:text-destructive h-7 px-2"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{message.description}</p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {new Date(message.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
