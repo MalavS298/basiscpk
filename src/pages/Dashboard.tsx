@@ -342,6 +342,10 @@ const Dashboard = () => {
   const [messageSubject, setMessageSubject] = useState("");
   const [messageDescription, setMessageDescription] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [acceptingResponses, setAcceptingResponses] = useState(() => {
+    const stored = localStorage.getItem("acceptingResponses");
+    return stored !== null ? JSON.parse(stored) : true;
+  });
 
   // Get user's name from profiles
   const [userName, setUserName] = useState<string | null>(null);
@@ -850,6 +854,13 @@ const Dashboard = () => {
                 isAdmin={isAdmin}
                 setActiveTab={setActiveTab}
                 onSubmitHours={() => setShowSubmitForm(true)}
+                acceptingResponses={acceptingResponses}
+                onToggleAcceptingResponses={() => {
+                  const newValue = !acceptingResponses;
+                  setAcceptingResponses(newValue);
+                  localStorage.setItem("acceptingResponses", JSON.stringify(newValue));
+                  toast(newValue ? "Now accepting responses" : "Stopped accepting responses");
+                }}
               />
 
               {/* Submit Hours Dialog */}

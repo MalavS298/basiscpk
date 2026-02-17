@@ -1,14 +1,16 @@
-import { Clock, Heart, Users, Inbox, ArrowRight, Newspaper, BarChart3 } from "lucide-react";
+import { Clock, Heart, Users, Inbox, ArrowRight, Newspaper, BarChart3, ShieldOff, ShieldCheck } from "lucide-react";
 
-type TabType = "submit" | "pending" | "all" | "users" | "newsletters" | "statistics";
+type TabType = "submit" | "pending" | "all" | "users" | "newsletters" | "statistics" | "inbox";
 
 interface QuickActionsProps {
   isAdmin: boolean;
   setActiveTab: (tab: TabType) => void;
   onSubmitHours: () => void;
+  acceptingResponses?: boolean;
+  onToggleAcceptingResponses?: () => void;
 }
 
-const QuickActions = ({ isAdmin, setActiveTab, onSubmitHours }: QuickActionsProps) => {
+const QuickActions = ({ isAdmin, setActiveTab, onSubmitHours, acceptingResponses = true, onToggleAcceptingResponses }: QuickActionsProps) => {
   const userActions = [
     { label: "Submit Hours", icon: Clock, color: "text-blue-600", action: onSubmitHours },
   ];
@@ -18,6 +20,12 @@ const QuickActions = ({ isAdmin, setActiveTab, onSubmitHours }: QuickActionsProp
     { label: "Hours Inbox", icon: Inbox, color: "text-emerald-600", action: () => setActiveTab("pending") },
     { label: "View Statistics", icon: BarChart3, color: "text-amber-600", action: () => setActiveTab("statistics") },
     { label: "Newsletters", icon: Newspaper, color: "text-pink-600", action: () => setActiveTab("newsletters") },
+    {
+      label: acceptingResponses ? "Stop Accepting Responses" : "Start Accepting Responses",
+      icon: acceptingResponses ? ShieldOff : ShieldCheck,
+      color: acceptingResponses ? "text-red-600" : "text-green-600",
+      action: onToggleAcceptingResponses || (() => {}),
+    },
   ];
 
   return (
