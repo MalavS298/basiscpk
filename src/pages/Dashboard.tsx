@@ -342,10 +342,20 @@ const Dashboard = () => {
   const [messageSubject, setMessageSubject] = useState("");
   const [messageDescription, setMessageDescription] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
-  const [acceptingResponses, setAcceptingResponses] = useState(() => {
-    const stored = localStorage.getItem("acceptingResponses");
-    return stored !== null ? JSON.parse(stored) : true;
-  });
+  const [acceptingResponses, setAcceptingResponses] = useState(true);
+
+  // Fetch accepting_responses from database
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("accepting_responses")
+        .eq("id", "global")
+        .single();
+      if (data) setAcceptingResponses(data.accepting_responses);
+    };
+    fetchSettings();
+  }, []);
 
   // Get user's name from profiles
   const [userName, setUserName] = useState<string | null>(null);
@@ -849,16 +859,35 @@ const Dashboard = () => {
         <div className="mt-6">
           {activeTab === "submit" && (
             <div className="space-y-6">
+              {/* Not accepting responses banner */}
+              {!acceptingResponses && (
+                <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 flex items-center gap-3">
+                  <span className="text-destructive font-semibold text-lg">NOT ACCEPTING RESPONSES</span>
+                </div>
+              )}
               {/* Quick Actions */}
               <QuickActions 
                 isAdmin={isAdmin}
                 setActiveTab={setActiveTab}
-                onSubmitHours={() => setShowSubmitForm(true)}
+                onSubmitHours={() => {
+                  if (!acceptingResponses) {
+                    toast.error("NOT ACCEPTING RESPONSES");
+                    return;
+                  }
+                  setShowSubmitForm(true);
+                }}
                 acceptingResponses={acceptingResponses}
-                onToggleAcceptingResponses={() => {
+                onToggleAcceptingResponses={async () => {
                   const newValue = !acceptingResponses;
+                  const { error } = await supabase
+                    .from("app_settings")
+                    .update({ accepting_responses: newValue, updated_at: new Date().toISOString() })
+                    .eq("id", "global");
+                  if (error) {
+                    toast.error("Failed to update setting");
+                    return;
+                  }
                   setAcceptingResponses(newValue);
-                  localStorage.setItem("acceptingResponses", JSON.stringify(newValue));
                   toast(newValue ? "Now accepting responses" : "Stopped accepting responses");
                 }}
               />
