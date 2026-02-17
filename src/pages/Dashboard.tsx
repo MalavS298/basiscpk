@@ -195,9 +195,13 @@ const UserStatisticsList = ({
     return <p className="text-muted-foreground text-center py-8">No users found</p>;
   }
 
+  const sortedUsers = [...users].sort((a, b) => 
+    (a.full_name || "").localeCompare(b.full_name || "")
+  );
+
   return (
     <div className="space-y-3">
-      {users.map((userProfile) => {
+      {sortedUsers.map((userProfile) => {
         const userSubmissions = allSubmissions.filter(
           s => s.user_id === userProfile.id && s.status === "approved"
         );
