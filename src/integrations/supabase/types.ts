@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          accepting_responses: boolean
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          accepting_responses?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          accepting_responses?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           created_at: string
