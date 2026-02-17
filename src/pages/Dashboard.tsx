@@ -342,6 +342,7 @@ const Dashboard = () => {
   const [messageSubject, setMessageSubject] = useState("");
   const [messageDescription, setMessageDescription] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [messageReason, setMessageReason] = useState("");
   const [acceptingResponses, setAcceptingResponses] = useState(true);
 
   // Fetch accepting_responses from database
@@ -515,12 +516,16 @@ const Dashboard = () => {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (!messageReason) {
+      toast.error("Please select a reason");
+      return;
+    }
 
     setSendingMessage(true);
     try {
       const { error } = await supabase.from("messages").insert({
         user_id: user.id,
-        subject: messageSubject,
+        subject: `[${messageReason}] ${messageSubject}`,
         description: messageDescription,
       });
 
@@ -529,6 +534,7 @@ const Dashboard = () => {
       toast.success("Message sent to admins!");
       setMessageSubject("");
       setMessageDescription("");
+      setMessageReason("");
       fetchMessages();
     } catch (error) {
       console.error("Error sending message:", error);
@@ -1432,6 +1438,19 @@ const Dashboard = () => {
               <div className="bg-card rounded-xl p-6 border border-border">
                 <h2 className="text-lg font-semibold text-foreground mb-4">Send Message to Admins</h2>
                 <form onSubmit={handleSendMessage} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="messageReason">Reason</Label>
+                    <Select value={messageReason} onValueChange={setMessageReason} required>
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Select a reason" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background z-50">
+                        <SelectItem value="Event Proposal">Event Proposal</SelectItem>
+                        <SelectItem value="Suggestion">Suggestion</SelectItem>
+                        <SelectItem value="Concern">Concern</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="messageSubject">Subject</Label>
                     <Input
