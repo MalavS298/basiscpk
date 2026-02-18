@@ -195,8 +195,14 @@ const UserStatisticsList = ({
     return <p className="text-muted-foreground text-center py-8">No users found</p>;
   }
 
+  const getLastName = (fullName: string | null) => {
+    if (!fullName) return "";
+    const parts = fullName.trim().split(" ");
+    return parts[parts.length - 1];
+  };
+
   const sortedUsers = [...users].sort((a, b) => 
-    (a.full_name || "").localeCompare(b.full_name || "")
+    getLastName(a.full_name).localeCompare(getLastName(b.full_name))
   );
 
   return (
