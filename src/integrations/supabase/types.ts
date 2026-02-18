@@ -32,6 +32,42 @@ export type Database = {
         }
         Relationships: []
       }
+      meetings: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          duration_minutes: number
+          id: string
+          join_url: string | null
+          start_time: string
+          title: string
+          zoom_meeting_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          join_url?: string | null
+          start_time: string
+          title: string
+          zoom_meeting_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          join_url?: string | null
+          start_time?: string
+          title?: string
+          zoom_meeting_id?: string | null
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           created_at: string

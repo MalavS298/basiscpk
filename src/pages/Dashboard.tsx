@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Upload, X, Clock, CheckCircle, XCircle, ZoomIn, CalendarIcon, Plus, Trash2, ChevronDown, ChevronUp, Home, Send } from "lucide-react";
+import { Upload, X, Clock, CheckCircle, XCircle, ZoomIn, CalendarIcon, Plus, Trash2, ChevronDown, ChevronUp, Home, Send, Video, ExternalLink } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,20 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import StatsCards from "@/components/dashboard/StatsCards";
 import QuickActions from "@/components/dashboard/QuickActions";
+
+type TabType = "submit" | "pending" | "all" | "users" | "newsletters" | "statistics" | "inbox" | "meetings";
+
+interface Meeting {
+  id: string;
+  title: string;
+  description: string | null;
+  start_time: string;
+  duration_minutes: number;
+  zoom_meeting_id: string | null;
+  join_url: string | null;
+  created_by: string;
+  created_at: string;
+}
 
 interface Submission {
   id: string;
@@ -322,7 +336,7 @@ const Dashboard = () => {
   const [asyncHours, setAsyncHours] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<"submit" | "pending" | "all" | "users" | "newsletters" | "statistics" | "inbox">("submit");
+  const [activeTab, setActiveTab] = useState<TabType>("submit");
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
   const [showSubmitForm, setShowSubmitForm] = useState(false);
 
@@ -355,6 +369,15 @@ const Dashboard = () => {
   const [messageReason, setMessageReason] = useState("");
   const [acceptingResponses, setAcceptingResponses] = useState(true);
 
+  // Meetings state
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [meetingTitle, setMeetingTitle] = useState("");
+  const [meetingDescription, setMeetingDescription] = useState("");
+  const [meetingStartTime, setMeetingStartTime] = useState("");
+  const [meetingDuration, setMeetingDuration] = useState("60");
+  const [creatingMeeting, setCreatingMeeting] = useState(false);
+  const [showMeetingForm, setShowMeetingForm] = useState(false);
+
   // Fetch accepting_responses from database
   useEffect(() => {
     const fetchSettings = async () => {
@@ -382,6 +405,7 @@ const Dashboard = () => {
       fetchSubmissions();
       fetchUserProfile();
       fetchMessages();
+      fetchMeetings();
       if (isAdmin) {
         fetchAllSubmissions();
         fetchUsers();
@@ -581,6 +605,83 @@ const Dashboard = () => {
     } catch (error) {
       console.error("Error deleting message:", error);
       toast.error("Failed to delete message");
+    }
+  };
+
+  const fetchMeetings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("meetings")
+        .select("*")
+        .order("start_time", { ascending: true });
+      if (error) throw error;
+      setMeetings(data || []);
+    } catch (error) {
+      console.error("Error fetching meetings:", error);
+    }
+  };
+
+  const handleCreateMeeting = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    if (!meetingTitle || !meetingStartTime) {
+      toast.error("Please fill in title and start time");
+      return;
+    }
+
+    setCreatingMeeting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Not authenticated");
+        return;
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zoom-meetings`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            title: meetingTitle,
+            description: meetingDescription,
+            start_time: new Date(meetingStartTime).toISOString(),
+            duration_minutes: parseInt(meetingDuration) || 60,
+          }),
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Failed to create meeting");
+
+      toast.success("Meeting created successfully!");
+      setMeetingTitle("");
+      setMeetingDescription("");
+      setMeetingStartTime("");
+      setMeetingDuration("60");
+      setShowMeetingForm(false);
+      fetchMeetings();
+    } catch (error: any) {
+      console.error("Error creating meeting:", error);
+      toast.error(error.message || "Failed to create meeting");
+    } finally {
+      setCreatingMeeting(false);
+    }
+  };
+
+  const handleDeleteMeeting = async (meetingId: string) => {
+    if (!confirm("Are you sure you want to delete this meeting?")) return;
+    try {
+      const { error } = await supabase.from("meetings").delete().eq("id", meetingId);
+      if (error) throw error;
+      toast.success("Meeting deleted");
+      fetchMeetings();
+    } catch (error) {
+      console.error("Error deleting meeting:", error);
+      toast.error("Failed to delete meeting");
     }
   };
 
@@ -1549,6 +1650,154 @@ const Dashboard = () => {
                         </p>
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Meetings Tab */}
+          {activeTab === "meetings" && (
+            <div className="space-y-6">
+              {/* Admin: Create Meeting */}
+              {isAdmin && (
+                <div className="bg-card rounded-xl p-6 border border-border">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                      <Video className="w-5 h-5 text-primary" />
+                      Create Zoom Meeting
+                    </h2>
+                    <Button
+                      size="sm"
+                      onClick={() => setShowMeetingForm((v) => !v)}
+                      className="gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      {showMeetingForm ? "Cancel" : "New Meeting"}
+                    </Button>
+                  </div>
+                  {showMeetingForm && (
+                    <form onSubmit={handleCreateMeeting} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Meeting Title</Label>
+                        <Input
+                          placeholder="e.g. Weekly Team Sync"
+                          value={meetingTitle}
+                          onChange={(e) => setMeetingTitle(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Description (Optional)</Label>
+                        <Textarea
+                          placeholder="What is this meeting about?"
+                          value={meetingDescription}
+                          onChange={(e) => setMeetingDescription(e.target.value)}
+                          rows={2}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Start Date & Time</Label>
+                          <Input
+                            type="datetime-local"
+                            value={meetingStartTime}
+                            onChange={(e) => setMeetingStartTime(e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Duration (minutes)</Label>
+                          <Select value={meetingDuration} onValueChange={setMeetingDuration}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="30">30 min</SelectItem>
+                              <SelectItem value="60">60 min</SelectItem>
+                              <SelectItem value="90">90 min</SelectItem>
+                              <SelectItem value="120">2 hours</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <Button type="submit" className="w-full" disabled={creatingMeeting}>
+                        {creatingMeeting ? "Creating..." : "Create Meeting"}
+                      </Button>
+                    </form>
+                  )}
+                </div>
+              )}
+
+              {/* Meetings List */}
+              <div className="bg-card rounded-xl p-6 border border-border">
+                <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Video className="w-5 h-5 text-primary" />
+                  Upcoming Meetings
+                </h2>
+                {meetings.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">No meetings scheduled</p>
+                ) : (
+                  <div className="space-y-3">
+                    {meetings.map((meeting) => {
+                      const isPast = new Date(meeting.start_time) < new Date();
+                      return (
+                        <div
+                          key={meeting.id}
+                          className={`p-4 rounded-lg border flex flex-col sm:flex-row sm:items-center gap-4 ${
+                            isPast ? "bg-muted/30 border-border opacity-70" : "bg-muted/50 border-border"
+                          }`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-semibold text-foreground">{meeting.title}</h3>
+                              {isPast && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                                  Past
+                                </span>
+                              )}
+                            </div>
+                            {meeting.description && (
+                              <p className="text-sm text-muted-foreground mt-1">{meeting.description}</p>
+                            )}
+                            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
+                              <span className="flex items-center gap-1">
+                                <CalendarIcon className="w-3 h-3" />
+                                {new Date(meeting.start_time).toLocaleString()}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {meeting.duration_minutes} min
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {meeting.join_url && (
+                              <a
+                                href={meeting.join_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Button size="sm" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                                  <ExternalLink className="w-4 h-4" />
+                                  Join
+                                </Button>
+                              </a>
+                            )}
+                            {isAdmin && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteMeeting(meeting.id)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
