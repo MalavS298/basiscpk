@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Upload, X, Clock, CheckCircle, XCircle, ZoomIn, CalendarIcon, Plus, Trash2, ChevronDown, ChevronUp, Home, Send, Video, ExternalLink } from "lucide-react";
+import { Upload, X, Clock, CheckCircle, XCircle, ZoomIn, CalendarIcon, Plus, Trash2, ChevronDown, ChevronUp, Home, Send, Video, ExternalLink, FileText, Users } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +31,13 @@ interface Meeting {
   join_url: string | null;
   created_by: string;
   created_at: string;
+}
+
+interface MeetingDetails {
+  id?: string;
+  meeting_id: string;
+  notes: string | null;
+  attendee_ids: string[];
 }
 
 interface Submission {
@@ -395,6 +402,13 @@ const Dashboard = () => {
   const [creatingMeeting, setCreatingMeeting] = useState(false);
   const [showMeetingForm, setShowMeetingForm] = useState(false);
 
+  // Meeting details state
+  const [meetingDetailsMap, setMeetingDetailsMap] = useState<Record<string, MeetingDetails>>({});
+  const [detailsDialogMeetingId, setDetailsDialogMeetingId] = useState<string | null>(null);
+  const [detailsNotes, setDetailsNotes] = useState("");
+  const [detailsAttendees, setDetailsAttendees] = useState<string[]>([]);
+  const [savingDetails, setSavingDetails] = useState(false);
+
   // Fetch accepting_responses from database
   useEffect(() => {
     const fetchSettings = async () => {
@@ -423,6 +437,7 @@ const Dashboard = () => {
       fetchUserProfile();
       fetchMessages();
       fetchMeetings();
+      fetchMeetingDetails();
       if (isAdmin) {
         fetchAllSubmissions();
         fetchUsers();
@@ -700,6 +715,63 @@ const Dashboard = () => {
       console.error("Error deleting meeting:", error);
       toast.error("Failed to delete meeting");
     }
+  };
+
+  const fetchMeetingDetails = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("meeting_details" as any)
+        .select("*");
+      if (error) throw error;
+      const map: Record<string, MeetingDetails> = {};
+      for (const row of ((data as unknown as MeetingDetails[]) || [])) {
+        map[row.meeting_id] = row;
+      }
+      setMeetingDetailsMap(map);
+    } catch (error) {
+      console.error("Error fetching meeting details:", error);
+    }
+  };
+
+  const openDetailsDialog = (meetingId: string) => {
+    const existing = meetingDetailsMap[meetingId];
+    setDetailsNotes(existing?.notes || "");
+    setDetailsAttendees(existing?.attendee_ids || []);
+    setDetailsDialogMeetingId(meetingId);
+  };
+
+  const handleSaveMeetingDetails = async () => {
+    if (!detailsDialogMeetingId) return;
+    setSavingDetails(true);
+    try {
+      const existing = meetingDetailsMap[detailsDialogMeetingId];
+      if (existing?.id) {
+        const { error } = await supabase
+          .from("meeting_details" as any)
+          .update({ notes: detailsNotes, attendee_ids: detailsAttendees })
+          .eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("meeting_details" as any)
+          .insert({ meeting_id: detailsDialogMeetingId, notes: detailsNotes, attendee_ids: detailsAttendees });
+        if (error) throw error;
+      }
+      toast.success("Meeting details saved!");
+      setDetailsDialogMeetingId(null);
+      fetchMeetingDetails();
+    } catch (error) {
+      console.error("Error saving meeting details:", error);
+      toast.error("Failed to save meeting details");
+    } finally {
+      setSavingDetails(false);
+    }
+  };
+
+  const toggleAttendee = (userId: string) => {
+    setDetailsAttendees(prev =>
+      prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+    );
   };
 
   const handlePublishNewsletter = async (e: React.FormEvent) => {
@@ -1767,60 +1839,103 @@ const Dashboard = () => {
                   <div className="space-y-3">
                     {meetings.map((meeting) => {
                       const isPast = new Date(meeting.start_time) < new Date();
+                      const details = meetingDetailsMap[meeting.id];
+                      const attendeeNames = (details?.attendee_ids || []).map(id => {
+                        const u = users.find(u => u.id === id);
+                        return u?.full_name || u?.email || "Unknown";
+                      });
                       return (
                         <div
                           key={meeting.id}
-                          className={`p-4 rounded-lg border flex flex-col sm:flex-row sm:items-center gap-4 ${
-                            isPast ? "bg-muted/30 border-border opacity-70" : "bg-muted/50 border-border"
+                          className={`rounded-lg border overflow-hidden ${
+                            isPast ? "bg-muted/30 border-border opacity-80" : "bg-muted/50 border-border"
                           }`}
                         >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-semibold text-foreground">{meeting.title}</h3>
-                              {isPast && (
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                                  Past
-                                </span>
+                          <div className="p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="font-semibold text-foreground">{meeting.title}</h3>
+                                {isPast && (
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                                    Past
+                                  </span>
+                                )}
+                                {details && (
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                                    Details added
+                                  </span>
+                                )}
+                              </div>
+                              {meeting.description && (
+                                <p className="text-sm text-muted-foreground mt-1">{meeting.description}</p>
                               )}
+                              <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
+                                <span className="flex items-center gap-1">
+                                  <CalendarIcon className="w-3 h-3" />
+                                  {new Date(meeting.start_time).toLocaleString()}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {meeting.duration_minutes} min
+                                </span>
+                              </div>
                             </div>
-                            {meeting.description && (
-                              <p className="text-sm text-muted-foreground mt-1">{meeting.description}</p>
-                            )}
-                            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
-                              <span className="flex items-center gap-1">
-                                <CalendarIcon className="w-3 h-3" />
-                                {new Date(meeting.start_time).toLocaleString()}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {meeting.duration_minutes} min
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            {meeting.join_url && (
-                              <a
-                                href={meeting.join_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <Button size="sm" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-                                  <ExternalLink className="w-4 h-4" />
-                                  Join
-                                </Button>
-                              </a>
-                            )}
-                            {isAdmin && (
+                            <div className="flex items-center gap-2 shrink-0">
+                              {meeting.join_url && (
+                                <a href={meeting.join_url} target="_blank" rel="noopener noreferrer">
+                                  <Button size="sm" className="gap-2">
+                                    <ExternalLink className="w-4 h-4" />
+                                    Join
+                                  </Button>
+                                </a>
+                              )}
                               <Button
                                 size="sm"
-                                variant="ghost"
-                                onClick={() => handleDeleteMeeting(meeting.id)}
-                                className="text-destructive hover:text-destructive"
+                                variant="outline"
+                                className="gap-2"
+                                onClick={() => openDetailsDialog(meeting.id)}
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <FileText className="w-4 h-4" />
+                                Details
                               </Button>
-                            )}
+                              {isAdmin && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleDeleteMeeting(meeting.id)}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
+
+                          {/* Inline summary visible to all */}
+                          {details && (details.notes || (details.attendee_ids?.length ?? 0) > 0) && (
+                            <div className="border-t border-border px-4 pb-4 pt-3 bg-background/40 space-y-2">
+                              {details.notes && (
+                                <div>
+                                  <p className="text-xs font-medium text-muted-foreground mb-1">Meeting Notes</p>
+                                  <p className="text-sm text-foreground whitespace-pre-wrap">{details.notes}</p>
+                                </div>
+                              )}
+                              {(details.attendee_ids?.length ?? 0) > 0 && (
+                                <div>
+                                  <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                                    <Users className="w-3 h-3" /> Attendees ({attendeeNames.length})
+                                  </p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {attendeeNames.map((name, i) => (
+                                      <span key={i} className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                        {name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -1831,6 +1946,95 @@ const Dashboard = () => {
           )}
         </div>
       </main>
+
+      {/* Meeting Details Dialog */}
+      <Dialog open={!!detailsDialogMeetingId} onOpenChange={(open) => !open && setDetailsDialogMeetingId(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              {isAdmin
+                ? (meetingDetailsMap[detailsDialogMeetingId!]?.id ? "Edit Meeting Details" : "Add Meeting Details")
+                : "Meeting Details"}
+            </DialogTitle>
+          </DialogHeader>
+          {detailsDialogMeetingId && (() => {
+            const details = meetingDetailsMap[detailsDialogMeetingId];
+            const attendeeNames = (details?.attendee_ids || []).map(id => {
+              const u = users.find(u => u.id === id);
+              return u?.full_name || u?.email || "Unknown";
+            });
+            return isAdmin ? (
+              <div className="space-y-4 mt-2">
+                <div className="space-y-2">
+                  <Label>Meeting Notes / Summary</Label>
+                  <Textarea
+                    placeholder="What was discussed in this meeting?"
+                    value={detailsNotes}
+                    onChange={(e) => setDetailsNotes(e.target.value)}
+                    rows={4}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1">
+                    <Users className="w-4 h-4" /> Attendees
+                  </Label>
+                  <div className="max-h-52 overflow-y-auto space-y-1 border border-border rounded-md p-2">
+                    {users.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-2">No members found</p>
+                    ) : (
+                      [...users].sort((a, b) => (a.full_name || "").localeCompare(b.full_name || "")).map((u) => (
+                        <label
+                          key={u.id}
+                          className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/50 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={detailsAttendees.includes(u.id)}
+                            onChange={() => toggleAttendee(u.id)}
+                            className="accent-primary"
+                          />
+                          <span className="text-sm text-foreground">{u.full_name || u.email || "Unknown"}</span>
+                          {u.full_name && <span className="text-xs text-muted-foreground">{u.email}</span>}
+                        </label>
+                      ))
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">{detailsAttendees.length} selected</p>
+                </div>
+                <Button className="w-full" onClick={handleSaveMeetingDetails} disabled={savingDetails}>
+                  {savingDetails ? "Saving..." : "Save Details"}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4 mt-2">
+                {details?.notes ? (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Notes</p>
+                    <p className="text-sm text-foreground whitespace-pre-wrap">{details.notes}</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No notes added yet.</p>
+                )}
+                {(details?.attendee_ids?.length ?? 0) > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                      <Users className="w-4 h-4" /> Attendees
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {attendeeNames.map((name, i) => (
+                        <span key={i} className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       {/* Image Enlarge Dialog */}
       <Dialog open={!!enlargedImage} onOpenChange={() => setEnlargedImage(null)}>
