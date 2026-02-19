@@ -197,11 +197,13 @@ const AddHoursForm = ({ users, onSuccess }: { users: UserProfile[], onSuccess: (
 const UserStatisticsList = ({ 
   users, 
   allSubmissions, 
-  onDeleteSubmission 
+  onDeleteSubmission,
+  searchQuery
 }: { 
   users: UserProfile[], 
   allSubmissions: Submission[], 
-  onDeleteSubmission: (id: string) => void 
+  onDeleteSubmission: (id: string) => void,
+  searchQuery: string
 }) => {
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
 
@@ -215,9 +217,21 @@ const UserStatisticsList = ({
     return parts[parts.length - 1];
   };
 
-  const sortedUsers = [...users].sort((a, b) => 
+  const filteredUsers = users.filter((u) => {
+    const q = searchQuery.toLowerCase();
+    return (
+      (u.full_name || "").toLowerCase().includes(q) ||
+      (u.email || "").toLowerCase().includes(q)
+    );
+  });
+
+  const sortedUsers = [...filteredUsers].sort((a, b) => 
     getLastName(a.full_name).localeCompare(getLastName(b.full_name))
   );
+
+  if (sortedUsers.length === 0) {
+    return <p className="text-muted-foreground text-center py-8">No members match your search</p>;
+  }
 
   return (
     <div className="space-y-3">
@@ -361,7 +375,10 @@ const Dashboard = () => {
   const [addingUser, setAddingUser] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
-  // Inbox state
+  // Statistics search state
+  const [statisticsSearch, setStatisticsSearch] = useState("");
+
+
   const [messages, setMessages] = useState<{id: string; user_id: string; subject: string; description: string; created_at: string; read: boolean; user_name?: string; user_email?: string}[]>([]);
   const [messageSubject, setMessageSubject] = useState("");
   const [messageDescription, setMessageDescription] = useState("");
@@ -1534,10 +1551,19 @@ const Dashboard = () => {
                     </DialogContent>
                   </Dialog>
                 </div>
+                <div className="mb-4">
+                  <Input
+                    placeholder="Search members by name or email..."
+                    value={statisticsSearch}
+                    onChange={(e) => setStatisticsSearch(e.target.value)}
+                    className="max-w-sm"
+                  />
+                </div>
                 <UserStatisticsList 
                   users={users} 
                   allSubmissions={allSubmissions} 
                   onDeleteSubmission={handleDeleteSubmission}
+                  searchQuery={statisticsSearch}
                 />
               </div>
             </div>
