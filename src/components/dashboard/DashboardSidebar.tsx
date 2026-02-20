@@ -7,7 +7,8 @@ import {
   BarChart3,
   FileText,
   Mail,
-  Video
+  Video,
+  Settings
 } from "lucide-react";
 
 type TabType = "submit" | "pending" | "all" | "users" | "newsletters" | "statistics" | "inbox" | "meetings";
@@ -18,6 +19,7 @@ interface DashboardSidebarProps {
   isAdmin: boolean;
   pendingCount?: number;
   unreadMessageCount?: number;
+  onOpenSettings?: () => void;
 }
 
 interface NavItem {
@@ -27,7 +29,7 @@ interface NavItem {
   badge?: number;
 }
 
-const DashboardSidebar = ({ activeTab, setActiveTab, isAdmin, pendingCount = 0, unreadMessageCount = 0 }: DashboardSidebarProps) => {
+const DashboardSidebar = ({ activeTab, setActiveTab, isAdmin, pendingCount = 0, unreadMessageCount = 0, onOpenSettings }: DashboardSidebarProps) => {
   const userNavItems: NavItem[] = [
     { id: "submit", label: "Overview", icon: LayoutDashboard },
     { id: "meetings", label: "Meetings", icon: Video },
@@ -48,13 +50,13 @@ const DashboardSidebar = ({ activeTab, setActiveTab, isAdmin, pendingCount = 0, 
   const navItems = isAdmin ? adminNavItems : userNavItems;
 
   return (
-    <aside className="w-64 min-h-screen border-r border-border bg-card p-6">
+    <aside className="w-64 min-h-screen border-r border-border bg-card p-6 flex flex-col">
       <div className="flex items-center gap-2 mb-8">
         <div className="w-1 h-6 bg-primary rounded-full" />
         <h2 className="text-xl font-bold text-primary font-display">Dashboard</h2>
       </div>
 
-      <nav className="space-y-1">
+      <nav className="space-y-1 flex-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -84,6 +86,14 @@ const DashboardSidebar = ({ activeTab, setActiveTab, isAdmin, pendingCount = 0, 
           );
         })}
       </nav>
+
+      <button
+        onClick={onOpenSettings}
+        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 border-t border-border pt-4"
+      >
+        <Settings className="w-5 h-5" />
+        <span>Settings</span>
+      </button>
     </aside>
   );
 };
