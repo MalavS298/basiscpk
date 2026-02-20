@@ -17,6 +17,9 @@ const StatsCards = ({
   pendingCount = 0,
   isAdmin 
 }: StatsCardsProps) => {
+  const belowServiceThreshold = totalHours < 25;
+  const belowSyncThreshold = syncHours < 18.75;
+
   const stats = [
     {
       label: "Service Hours",
@@ -24,6 +27,7 @@ const StatsCards = ({
       subtitle: "hours completed this year",
       icon: TrendingUp,
       valueColor: "text-blue-600",
+      warning: belowServiceThreshold,
     },
     {
       label: "Sync Hours",
@@ -31,6 +35,7 @@ const StatsCards = ({
       subtitle: "synchronous service",
       icon: Users,
       valueColor: "text-purple-600",
+      warning: belowSyncThreshold,
     },
     {
       label: "Async Hours",
@@ -38,6 +43,7 @@ const StatsCards = ({
       subtitle: "asynchronous service",
       icon: Clock,
       valueColor: "text-emerald-600",
+      warning: belowServiceThreshold,
     },
   ];
 
@@ -48,6 +54,7 @@ const StatsCards = ({
       subtitle: "awaiting approval",
       icon: Award,
       valueColor: "text-amber-600",
+      warning: false,
     });
   }
 
@@ -58,7 +65,7 @@ const StatsCards = ({
         return (
           <div 
             key={stat.label}
-            className="bg-card rounded-xl p-5 border border-border hover:shadow-md transition-shadow"
+            className={`bg-card rounded-xl p-5 border-2 ${stat.warning ? 'border-destructive' : 'border-border'} hover:shadow-md transition-shadow`}
           >
             <div className="flex items-start justify-between mb-3">
               <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
