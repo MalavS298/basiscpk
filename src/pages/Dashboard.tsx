@@ -409,6 +409,11 @@ const Dashboard = () => {
   const [detailsAttendees, setDetailsAttendees] = useState<string[]>([]);
   const [savingDetails, setSavingDetails] = useState(false);
   const [attendeeSearch, setAttendeeSearch] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsName, setSettingsName] = useState("");
+  const [settingsNewPassword, setSettingsNewPassword] = useState("");
+  const [settingsConfirmPassword, setSettingsConfirmPassword] = useState("");
+  const [savingSettings, setSavingSettings] = useState(false);
 
   // Fetch accepting_responses from database
   useEffect(() => {
@@ -734,6 +739,56 @@ const Dashboard = () => {
     }
   };
 
+  const handleOpenSettings = () => {
+    setSettingsName(userName || "");
+    setSettingsNewPassword("");
+    setSettingsConfirmPassword("");
+    setSettingsOpen(true);
+  };
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      const trimmedName = settingsName.trim();
+      if (!trimmedName) {
+        toast.error("Name cannot be empty");
+        setSavingSettings(false);
+        return;
+      }
+
+      // Update name in profiles table
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ full_name: trimmedName })
+        .eq("id", user!.id);
+      if (profileError) throw profileError;
+
+      // Update password if provided
+      if (settingsNewPassword) {
+        if (settingsNewPassword.length < 6) {
+          toast.error("Password must be at least 6 characters");
+          setSavingSettings(false);
+          return;
+        }
+        if (settingsNewPassword !== settingsConfirmPassword) {
+          toast.error("Passwords do not match");
+          setSavingSettings(false);
+          return;
+        }
+        const { error: pwError } = await supabase.auth.updateUser({ password: settingsNewPassword });
+        if (pwError) throw pwError;
+      }
+
+      toast.success("Settings saved successfully");
+      setSettingsOpen(false);
+      fetchUserProfile();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save settings");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   const openDetailsDialog = (meetingId: string) => {
     const existing = meetingDetailsMap[meetingId];
     setDetailsNotes(existing?.notes || "");
@@ -1029,6 +1084,7 @@ const Dashboard = () => {
         isAdmin={isAdmin} 
         pendingCount={pendingSubmissions.length}
         unreadMessageCount={isAdmin ? unreadMessages.length : 0}
+        onOpenSettings={handleOpenSettings}
       />
 
       {/* Main Content */}
@@ -2060,6 +2116,47 @@ const Dashboard = () => {
               className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Settings Dialog */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Account Settings</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="space-y-2">
+              <Label>Full Name</Label>
+              <Input
+                value={settingsName}
+                onChange={(e) => setSettingsName(e.target.value)}
+                placeholder="Your name"
+                maxLength={100}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>New Password</Label>
+              <Input
+                type="password"
+                value={settingsNewPassword}
+                onChange={(e) => setSettingsNewPassword(e.target.value)}
+                placeholder="Leave blank to keep current"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Confirm New Password</Label>
+              <Input
+                type="password"
+                value={settingsConfirmPassword}
+                onChange={(e) => setSettingsConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+              />
+            </div>
+            <Button className="w-full" onClick={handleSaveSettings} disabled={savingSettings}>
+              {savingSettings ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
