@@ -75,6 +75,9 @@ const StatsCards = ({
               {stat.value}
             </p>
             <p className="text-xs text-muted-foreground">{stat.subtitle}</p>
+            {stat.warning && (
+              <p className="text-xs font-medium text-destructive mt-2">Minimum hours not met</p>
+            )}
           </div>
         );
       })}
