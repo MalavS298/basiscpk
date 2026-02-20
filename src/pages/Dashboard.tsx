@@ -408,6 +408,7 @@ const Dashboard = () => {
   const [detailsNotes, setDetailsNotes] = useState("");
   const [detailsAttendees, setDetailsAttendees] = useState<string[]>([]);
   const [savingDetails, setSavingDetails] = useState(false);
+  const [attendeeSearch, setAttendeeSearch] = useState("");
 
   // Fetch accepting_responses from database
   useEffect(() => {
@@ -737,6 +738,7 @@ const Dashboard = () => {
     const existing = meetingDetailsMap[meetingId];
     setDetailsNotes(existing?.notes || "");
     setDetailsAttendees(existing?.attendee_ids || []);
+    setAttendeeSearch("");
     setDetailsDialogMeetingId(meetingId);
   };
 
@@ -1979,11 +1981,23 @@ const Dashboard = () => {
                   <Label className="flex items-center gap-1">
                     <Users className="w-4 h-4" /> Attendees
                   </Label>
+                  <Input
+                    placeholder="Search members..."
+                    value={attendeeSearch}
+                    onChange={(e) => setAttendeeSearch(e.target.value)}
+                    className="mb-2"
+                  />
                   <div className="max-h-52 overflow-y-auto space-y-1 border border-border rounded-md p-2">
                     {users.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-2">No members found</p>
                     ) : (
-                      [...users].sort((a, b) => (a.full_name || "").localeCompare(b.full_name || "")).map((u) => (
+                      [...users]
+                        .filter((u) => {
+                          if (!attendeeSearch.trim()) return true;
+                          const q = attendeeSearch.toLowerCase();
+                          return (u.full_name || "").toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q);
+                        })
+                        .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || "")).map((u) => (
                         <label
                           key={u.id}
                           className="flex items-center gap-2 p-1.5 rounded hover:bg-muted/50 cursor-pointer"
