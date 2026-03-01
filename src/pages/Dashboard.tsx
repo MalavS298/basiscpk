@@ -1941,7 +1941,11 @@ const Dashboard = () => {
                               </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              {meeting.join_url && (
+                              {meeting.join_url && (() => {
+                                const meetingEnd = new Date(new Date(meeting.start_time).getTime() + meeting.duration_minutes * 60000);
+                                const oneDayAfterEnd = new Date(meetingEnd.getTime() + 24 * 60 * 60 * 1000);
+                                return new Date() <= oneDayAfterEnd;
+                              })() && (
                                 <a href={meeting.join_url} target="_blank" rel="noopener noreferrer">
                                   <Button size="sm" className="gap-2">
                                     <ExternalLink className="w-4 h-4" />
