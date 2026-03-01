@@ -255,7 +255,7 @@ const UserStatisticsList = ({
           .reduce((sum, s) => sum + Number(s.hours), 0);
         const isExpanded = expandedUserId === userProfile.id;
 
-        const belowRequirements = userTotalHours < 25 || asyncHours < 18;
+        const belowRequirements = userTotalHours < 25 || syncHours < 18;
 
         return (
           <div key={userProfile.id} className={`bg-muted/50 rounded-lg border-2 overflow-hidden ${belowRequirements ? 'border-destructive' : 'border-border'}`}>
