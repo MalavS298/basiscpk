@@ -255,8 +255,10 @@ const UserStatisticsList = ({
           .reduce((sum, s) => sum + Number(s.hours), 0);
         const isExpanded = expandedUserId === userProfile.id;
 
+        const belowRequirements = userTotalHours < 25 || asyncHours < 18;
+
         return (
-          <div key={userProfile.id} className="bg-muted/50 rounded-lg border border-border overflow-hidden">
+          <div key={userProfile.id} className={`bg-muted/50 rounded-lg border-2 overflow-hidden ${belowRequirements ? 'border-destructive' : 'border-border'}`}>
             <div
               className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/80 transition-colors"
               onClick={() => setExpandedUserId(isExpanded ? null : userProfile.id)}
