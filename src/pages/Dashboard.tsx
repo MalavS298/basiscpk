@@ -8,8 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Upload, X, Clock, CheckCircle, XCircle, ZoomIn, CalendarIcon, Plus, Trash2, ChevronDown, ChevronUp, Home, Send, Video, ExternalLink, FileText, Users } from "lucide-react";
+import { Upload, X, Clock, CheckCircle, XCircle, ZoomIn, CalendarIcon, Plus, Trash2, ChevronDown, ChevronUp, Home, Send, Video, ExternalLink, FileText, Users, Check, ChevronsUpDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -64,6 +65,7 @@ interface UserProfile {
 // Add Hours Form Component
 const AddHoursForm = ({ users, onSuccess }: { users: UserProfile[], onSuccess: () => void }) => {
   const [selectedUserId, setSelectedUserId] = useState("");
+  const [userSearchOpen, setUserSearchOpen] = useState(false);
   const [hours, setHours] = useState("");
   const [serviceType, setServiceType] = useState<"synchronous" | "asynchronous">("synchronous");
   const [description, setDescription] = useState("");
@@ -114,18 +116,39 @@ const AddHoursForm = ({ users, onSuccess }: { users: UserProfile[], onSuccess: (
       <form onSubmit={handleSubmit} className="space-y-4 mt-4">
         <div className="space-y-2">
           <Label>Select User</Label>
-          <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Choose a user" />
-            </SelectTrigger>
-            <SelectContent>
-              {users.map((u) => (
-                <SelectItem key={u.id} value={u.id}>
-                  {u.full_name || u.email || "Unknown"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover open={userSearchOpen} onOpenChange={setUserSearchOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" role="combobox" aria-expanded={userSearchOpen} className="w-full justify-between">
+                {selectedUserId
+                  ? (users.find((u) => u.id === selectedUserId)?.full_name || users.find((u) => u.id === selectedUserId)?.email || "Unknown")
+                  : "Choose a user"}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Search members..." />
+                <CommandList>
+                  <CommandEmpty>No member found.</CommandEmpty>
+                  <CommandGroup>
+                    {users.map((u) => (
+                      <CommandItem
+                        key={u.id}
+                        value={u.full_name || u.email || u.id}
+                        onSelect={() => {
+                          setSelectedUserId(u.id);
+                          setUserSearchOpen(false);
+                        }}
+                      >
+                        <Check className={cn("mr-2 h-4 w-4", selectedUserId === u.id ? "opacity-100" : "opacity-0")} />
+                        {u.full_name || u.email || "Unknown"}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="space-y-2">
