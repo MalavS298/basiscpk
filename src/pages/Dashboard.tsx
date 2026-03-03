@@ -410,6 +410,7 @@ const Dashboard = () => {
   // Statistics search state
   const [statisticsSearch, setStatisticsSearch] = useState("");
   const [syncing, setSyncing] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
 
 
   const [messages, setMessages] = useState<{id: string; user_id: string; subject: string; description: string; created_at: string; read: boolean; user_name?: string; user_email?: string}[]>([]);
@@ -1573,11 +1574,20 @@ const Dashboard = () => {
               {/* Users List */}
               <div className="bg-card rounded-xl p-6 border border-border">
                 <h2 className="text-lg font-semibold text-foreground mb-4">All Users</h2>
+                <Input
+                  placeholder="Search users by name or email..."
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  className="mb-4"
+                />
                 {users.length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">No users yet</p>
                 ) : (
                   <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                    {users.map((userProfile) => (
+                    {users.filter((u) => {
+                      const q = userSearch.toLowerCase();
+                      return !q || (u.full_name || "").toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q);
+                    }).map((userProfile) => (
                       <div
                         key={userProfile.id}
                         className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border"
