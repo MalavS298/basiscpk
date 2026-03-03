@@ -1207,6 +1207,21 @@ const Dashboard = () => {
                     setSyncing(false);
                   }
                 }}
+                onResetAllHours={async () => {
+                  try {
+                    const { error } = await supabase
+                      .from("submissions")
+                      .delete()
+                      .neq("id", "00000000-0000-0000-0000-000000000000");
+                    if (error) throw error;
+                    toast.success("All hours have been reset successfully");
+                    fetchSubmissions();
+                    fetchAllSubmissions();
+                  } catch (error: any) {
+                    console.error("Reset error:", error);
+                    toast.error("Failed to reset hours: " + (error.message || "Unknown error"));
+                  }
+                }}
               />
 
               {/* Submit Hours Dialog */}
