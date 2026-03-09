@@ -180,6 +180,7 @@ export type Database = {
           hours: number
           id: string
           image_url: string | null
+          primary_approver: string | null
           service_date: string
           service_type: string
           status: string
@@ -193,6 +194,7 @@ export type Database = {
           hours?: number
           id?: string
           image_url?: string | null
+          primary_approver?: string | null
           service_date?: string
           service_type?: string
           status?: string
@@ -206,6 +208,7 @@ export type Database = {
           hours?: number
           id?: string
           image_url?: string | null
+          primary_approver?: string | null
           service_date?: string
           service_type?: string
           status?: string
