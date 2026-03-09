@@ -1471,6 +1471,11 @@ const Dashboard = () => {
                             </div>
                           </div>
                         </div>
+                        {submission.primary_approver && (
+                          <p className="text-sm text-muted-foreground mb-1">
+                            <span className="font-medium">Primary Approver:</span> {submission.primary_approver}
+                          </p>
+                        )}
                         {submission.description && (
                           <p className="text-sm text-muted-foreground mb-3">
                             {submission.description}
