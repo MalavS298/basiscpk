@@ -50,6 +50,7 @@ interface Submission {
   submitted_at: string;
   service_date: string;
   service_type: string;
+  primary_approver?: string | null;
   status: string;
   user_name?: string | null;
   user_email?: string | null;
@@ -1470,6 +1471,11 @@ const Dashboard = () => {
                             </div>
                           </div>
                         </div>
+                        {submission.primary_approver && (
+                          <p className="text-sm text-muted-foreground mb-1">
+                            <span className="font-medium">Primary Approver:</span> {submission.primary_approver}
+                          </p>
+                        )}
                         {submission.description && (
                           <p className="text-sm text-muted-foreground mb-3">
                             {submission.description}
