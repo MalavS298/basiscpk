@@ -101,6 +101,7 @@ const AddHoursForm = ({ users, onSuccess }: { users: UserProfile[], onSuccess: (
       setDescription("");
       setServiceDate(new Date());
       setServiceType("synchronous");
+      setPrimaryApprover("");
       onSuccess();
     } catch (error) {
       console.error("Error adding hours:", error);
