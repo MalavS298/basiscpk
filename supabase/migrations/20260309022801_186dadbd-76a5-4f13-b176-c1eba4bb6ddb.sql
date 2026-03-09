@@ -1,0 +1,1 @@
+ALTER TABLE public.submissions ADD COLUMN primary_approver text NULL;

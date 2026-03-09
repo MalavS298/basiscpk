@@ -68,6 +68,7 @@ const AddHoursForm = ({ users, onSuccess }: { users: UserProfile[], onSuccess: (
   const [userSearchOpen, setUserSearchOpen] = useState(false);
   const [hours, setHours] = useState("");
   const [serviceType, setServiceType] = useState<"synchronous" | "asynchronous">("synchronous");
+  const [primaryApprover, setPrimaryApprover] = useState("");
   const [description, setDescription] = useState("");
   const [serviceDate, setServiceDate] = useState<Date>(new Date());
   const [submitting, setSubmitting] = useState(false);
@@ -87,6 +88,7 @@ const AddHoursForm = ({ users, onSuccess }: { users: UserProfile[], onSuccess: (
         hours: parseFloat(hours) || 0,
         service_date: format(serviceDate, "yyyy-MM-dd"),
         service_type: serviceType,
+        primary_approver: primaryApprover || null,
         status: "approved",
         approved_at: new Date().toISOString(),
       });
@@ -99,6 +101,7 @@ const AddHoursForm = ({ users, onSuccess }: { users: UserProfile[], onSuccess: (
       setDescription("");
       setServiceDate(new Date());
       setServiceType("synchronous");
+      setPrimaryApprover("");
       onSuccess();
     } catch (error) {
       console.error("Error adding hours:", error);
@@ -203,6 +206,15 @@ const AddHoursForm = ({ users, onSuccess }: { users: UserProfile[], onSuccess: (
               />
             </PopoverContent>
           </Popover>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Primary Approver</Label>
+          <Input
+            placeholder="Enter primary approver name"
+            value={primaryApprover}
+            onChange={(e) => setPrimaryApprover(e.target.value)}
+          />
         </div>
 
         <div className="space-y-2">
@@ -397,6 +409,7 @@ const Dashboard = () => {
   const [hours, setHours] = useState("");
   const [serviceDate, setServiceDate] = useState<Date>(new Date());
   const [serviceType, setServiceType] = useState<"synchronous" | "asynchronous">("synchronous");
+  const [primaryApprover, setPrimaryApprover] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -969,6 +982,7 @@ const Dashboard = () => {
         image_url: imageUrl,
         service_date: format(serviceDate, "yyyy-MM-dd"),
         service_type: serviceType,
+        primary_approver: primaryApprover || null,
         status: "pending",
       });
 
@@ -980,6 +994,7 @@ const Dashboard = () => {
       setHours("");
       setServiceDate(new Date());
       setServiceType("synchronous");
+      setPrimaryApprover("");
       setImage(null);
       setImagePreview(null);
       setShowSubmitForm(false);
@@ -1284,6 +1299,16 @@ const Dashboard = () => {
                           />
                         </PopoverContent>
                       </Popover>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="primaryApprover">Primary Approver</Label>
+                      <Input
+                        id="primaryApprover"
+                        placeholder="Enter primary approver name"
+                        value={primaryApprover}
+                        onChange={(e) => setPrimaryApprover(e.target.value)}
+                      />
                     </div>
 
                     <div className="space-y-2">
