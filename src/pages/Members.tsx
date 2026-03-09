@@ -22,7 +22,7 @@ const requirements = [
   },
   {
     title: "Service Commitment",
-    description: "Complete at least 15 hours of community service annually as an active member"
+    description: "Complete at least 25 hours of community service annually as an active member from which at least 75% must be Synchronous"
   }
 ];
 
