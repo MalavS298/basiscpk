@@ -486,6 +486,7 @@ const Dashboard = () => {
       fetchSubmissions();
       fetchUserProfile();
       fetchMessages();
+      fetchReplies();
       fetchMeetings();
       fetchMeetingDetails();
       if (isAdmin) {
